@@ -1,0 +1,69 @@
+# ============================================
+# DEPENDENCIAS PRINCIPALES
+# ============================================
+
+# PyQt6 - Framework de interfaz gráfica
+PyQt6==6.6.1
+PyQt6-Qt6==6.6.1
+PyQt6-sip==13.6.0
+
+# Supabase - Cliente de base de datos
+supabase==2.3.4
+postgrest==0.13.2
+
+# Utilidades
+python-dotenv==1.0.0          # Variables de entorno
+pydantic==2.5.3               # Validación de datos
+bcrypt==4.1.2                 # Hash de contraseñas
+
+# ============================================
+# EXPORTACIÓN Y REPORTES
+# ============================================
+reportlab==4.0.9              # Generación de PDFs
+openpyxl==3.1.2               # Exportación a Excel
+Pillow==10.2.0                # Manejo de imágenes
+
+# ============================================
+# GRÁFICOS Y VISUALIZACIÓN
+# ============================================
+matplotlib==3.8.2             # Gráficos y estadísticas
+pyqtgraph==0.13.3             # Gráficos en tiempo real para PyQt
+
+# ============================================
+# CÓDIGO DE BARRAS Y QR
+# ============================================
+qrcode==7.4.2                 # Generación de códigos QR
+python-barcode==0.15.1        # Generación de códigos de barras
+pyzbar==0.1.9                 # Lectura de códigos de barras/QR
+
+# ============================================
+# FECHA Y HORA
+# ============================================
+python-dateutil==2.8.2        # Utilidades de fecha y hora
+
+# ============================================
+# TESTING
+# ============================================
+pytest==7.4.4                 # Framework de testing
+pytest-qt==4.3.1              # Testing para PyQt
+pytest-cov==4.1.0             # Cobertura de código
+
+# ============================================
+# DESARROLLO
+# ============================================
+black==23.12.1                # Formateo de código
+flake8==7.0.0                 # Linting
+mypy==1.8.0                   # Type checking
+
+# ============================================
+# NOTAS DE INSTALACIÓN
+# ============================================
+# Para instalar todas las dependencias:
+#   pip install -r requirements.txt
+#
+# Para instalar solo las dependencias de producción (sin testing/dev):
+#   pip install -r requirements.txt | grep -v "pytest\|black\|flake8\|mypy"
+#
+# DEPENDENCIAS DEL SISTEMA (Linux):
+#   - Para pyzbar: sudo apt-get install libzbar0
+#   - Para PyQt6: sudo apt-get install libxcb-xinerama0
