@@ -1,5 +1,8 @@
 
 import sys
+import io
+if isinstance(sys.stdout, io.TextIOWrapper):
+    sys.stdout.reconfigure(encoding='utf-8')
 from pathlib import Path
 # Agregar el directorio raíz al path para importar módulos
 sys.path.insert(0, str(Path(__file__).parent))
@@ -12,13 +15,13 @@ def print_header(text):
     print("="*60)
 def print_success(text):
     """Imprime un mensaje de éxito"""
-    print(f"✅ {text}")
+    print(f"[OK]    {text}")
 def print_error(text):
     """Imprime un mensaje de error"""
-    print(f"❌ {text}")
+    print(f"[ERROR] {text}")
 def print_info(text, indent=2):
     """Imprime información con indentación"""
-    print(" " * indent + f"→ {text}")
+    print(" " * indent + f"-> {text}")
 def main():
     """Función principal de prueba"""
     
@@ -27,7 +30,7 @@ def main():
     # ============================================
     # 1. Verificar que el archivo .env existe
     # ============================================
-    print("\n🔍 Paso 1: Verificando archivo .env...")
+    print("\n[*] Paso 1: Verificando archivo .env...")
     env_file = Path(__file__).parent / '.env'
     
     if env_file.exists():
@@ -41,25 +44,27 @@ def main():
     # ============================================
     # 2. Validar configuración
     # ============================================
-    print("\n🔍 Paso 2: Validando configuración...")
+    print("\n[*] Paso 2: Validando configuración...")
     
-    is_valid, errors = config.validate()
+    is_valid, messages = config.validate()
     
     if is_valid:
         print_success("Configuración válida")
         print_info(f"App Name: {config.APP_NAME}")
         print_info(f"Version: {config.APP_VERSION}")
         print_info(f"Debug Mode: {config.DEBUG_MODE}")
+        for warning in messages:
+            print_info(f"[!] AVISO: {warning}", indent=4)
     else:
         print_error("Configuración inválida")
-        for error in errors:
+        for error in messages:
             print_info(f"ERROR: {error}", indent=4)
         return False
     
     # ============================================
     # 3. Verificar credenciales de Supabase
     # ============================================
-    print("\n🔍 Paso 3: Verificando credenciales de Supabase...")
+    print("\n[*] Paso 3: Verificando credenciales de Supabase...")
     
     if config.SUPABASE_URL:
         print_success("SUPABASE_URL configurada")
@@ -82,7 +87,7 @@ def main():
     # ============================================
     # 4. Probar conexión a Supabase
     # ============================================
-    print("\n🔍 Paso 4: Probando conexión a Supabase...")
+    print("\n[*] Paso 4: Probando conexión a Supabase...")
     
     try:
         if db_manager.is_connected():
@@ -97,7 +102,7 @@ def main():
     # ============================================
     # 5. Probar consulta a la base de datos
     # ============================================
-    print("\n🔍 Paso 5: Probando consulta a la base de datos...")
+    print("\n[*] Paso 5: Probando consulta a la base de datos...")
     
     try:
         # Intentar obtener usuarios
@@ -109,7 +114,7 @@ def main():
             for user in users:
                 print_info(f"• {user['username']} ({user['full_name']}) - Rol: {user['role']}", indent=4)
         else:
-            print_info("⚠️  No hay usuarios en la base de datos", indent=4)
+            print_info("[!]  No hay usuarios en la base de datos", indent=4)
             print_info("Verifica que ejecutaste el script database_schema.sql", indent=4)
             
     except Exception as e:
@@ -123,7 +128,7 @@ def main():
     # ============================================
     # 6. Verificar usuario admin
     # ============================================
-    print("\n🔍 Paso 6: Verificando usuario administrador...")
+    print("\n[*] Paso 6: Verificando usuario administrador...")
     
     try:
         admin_users = db_manager.select('users', filters={'username': 'admin'})
@@ -147,7 +152,7 @@ def main():
     # ============================================
     # 7. Verificar tablas principales
     # ============================================
-    print("\n🔍 Paso 7: Verificando tablas principales...")
+    print("\n[*] Paso 7: Verificando tablas principales...")
     
     tables_to_check = [
         'users', 'members', 'membership_plans', 'payments', 
@@ -166,7 +171,7 @@ def main():
     print_info(f"{tables_ok}/{len(tables_to_check)} tablas verificadas correctamente", indent=2)
     
     if tables_ok < len(tables_to_check):
-        print_info("⚠️  Algunas tablas no existen o tienen problemas", indent=4)
+        print_info("[!]  Algunas tablas no existen o tienen problemas", indent=4)
         print_info("Asegúrate de ejecutar el script database_schema.sql completo", indent=4)
     
     # ============================================
@@ -174,20 +179,20 @@ def main():
     # ============================================
     print_header("RESUMEN")
     
-    print("\n📊 Estado del sistema:")
-    print_success("Configuración: OK")
-    print_success("Conexión a Supabase: OK")
+    print("\nEstado del sistema:")
+    print_success("Configuracion: OK")
+    print_success("Conexion a Supabase: OK")
     print_success("Base de datos: OK")
     print_success("Usuario admin: OK")
     print_success(f"Tablas principales: {tables_ok}/{len(tables_to_check)}")
     
-    print("\n🎉 ¡TODO ESTÁ LISTO!")
-    print("\n📝 Credenciales para el login:")
+    print("\n>> TODO ESTA LISTO!")
+    print("\nCredenciales para el login:")
     print_info("Usuario: admin")
-    print_info("Contraseña: admin123")
+    print_info("Contrasena: admin123")
     
-    print("\n🚀 Siguiente paso:")
-    print_info("Ejecuta la aplicación con: python main.py")
+    print("\nSiguiente paso:")
+    print_info("Ejecuta la aplicacion con: python main.py")
     
     print("\n" + "="*60 + "\n")
     
@@ -197,10 +202,10 @@ if __name__ == "__main__":
         success = main()
         sys.exit(0 if success else 1)
     except KeyboardInterrupt:
-        print("\n\n⚠️  Prueba interrumpida por el usuario")
+        print("\n\n[!] Prueba interrumpida por el usuario")
         sys.exit(1)
     except Exception as e:
-        print(f"\n\n❌ Error inesperado: {str(e)}")
+        print(f"\n\n[ERROR] Error inesperado: {str(e)}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

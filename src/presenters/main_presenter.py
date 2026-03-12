@@ -7,4 +7,4 @@ class MainPresenter:
         self._connect_signals()
         
     def _connect_signals(self):
-        pass
+        self.view.form_members_requested.connect(self.main_app.open_members_form)

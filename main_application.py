@@ -2,13 +2,17 @@
 import sys
 import logging
 from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QMdiSubWindow
+
 from src.config import config
 
 from src.views.login_view import LoginView
 from src.views.main_view import MainView
+from src.views.member_view import MemberView
 
 from src.presenters.login_presenter import LoginPresenter
 from src.presenters.main_presenter import MainPresenter
+from src.presenters.member_presenter import MemberPresenter
 
 
 class MainApplication:
@@ -42,6 +46,16 @@ class MainApplication:
         self.main_presenter = MainPresenter(self.main_view, self, self.current_user)
         
         self.login_view.close()
+
+    def open_members_form(self):
+        self.logger.info("Opening members form")
+        
+        member_view = MemberView()
+        member_presenter = MemberPresenter(member_view, self.current_user)
+        
+        mdi_sub_window = QMdiSubWindow()
+        
+        self.main_view.open_child_form(member_view, mdi_sub_window)
 
         
 def main():
