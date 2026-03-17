@@ -15,7 +15,7 @@
   </property>
   <layout class="QGridLayout" name="gridLayout_3">
    <item row="4" column="0">
-    <widget class="QTableWidget" name="tableWidget">
+    <widget class="QTableWidget" name="table_members">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
        <horstretch>0</horstretch>
@@ -71,7 +71,7 @@
        </widget>
       </item>
       <item row="0" column="2">
-       <widget class="QPushButton" name="btn_delete">
+       <widget class="QPushButton" name="btn_cancel">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
           <horstretch>0</horstretch>
@@ -166,6 +166,12 @@
    </item>
    <item row="1" column="0">
     <widget class="QGroupBox" name="groupBox">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
      <property name="title">
       <string>Member Information</string>
      </property>
@@ -184,7 +190,7 @@
        </widget>
       </item>
       <item row="1" column="2">
-       <widget class="QLineEdit" name="lineEdit_4">
+       <widget class="QLineEdit" name="input_phone">
         <property name="font">
          <font>
           <family>Century Gothic</family>
@@ -233,7 +239,7 @@
        </widget>
       </item>
       <item row="3" column="2">
-       <widget class="QDateEdit" name="dateEdit">
+       <widget class="QDateEdit" name="date_birthday">
         <property name="font">
          <font>
           <family>Century Gothic</family>
@@ -291,7 +297,7 @@
        </widget>
       </item>
       <item row="6" column="2">
-       <widget class="QLineEdit" name="lineEdit_8">
+       <widget class="QLineEdit" name="input_emergency_phone">
         <property name="font">
          <font>
           <family>Century Gothic</family>
@@ -314,7 +320,7 @@
        </widget>
       </item>
       <item row="5" column="2">
-       <widget class="QLineEdit" name="lineEdit_3">
+       <widget class="QLineEdit" name="input_email">
         <property name="font">
          <font>
           <family>Century Gothic</family>
@@ -337,7 +343,7 @@
        </widget>
       </item>
       <item row="0" column="2">
-       <widget class="QLineEdit" name="lineEdit">
+       <widget class="QLineEdit" name="input_first_name">
         <property name="font">
          <font>
           <family>Century Gothic</family>
@@ -360,7 +366,7 @@
        </widget>
       </item>
       <item row="6" column="4">
-       <widget class="QLineEdit" name="lineEdit_9">
+       <widget class="QLineEdit" name="input_notes">
         <property name="font">
          <font>
           <family>Century Gothic</family>
@@ -370,7 +376,7 @@
        </widget>
       </item>
       <item row="5" column="4">
-       <widget class="QLineEdit" name="lineEdit_7">
+       <widget class="QLineEdit" name="input_emergency_name">
         <property name="font">
          <font>
           <family>Century Gothic</family>
@@ -380,7 +386,7 @@
        </widget>
       </item>
       <item row="3" column="4">
-       <widget class="QComboBox" name="comboBox">
+       <widget class="QComboBox" name="cbo_gender">
         <property name="font">
          <font>
           <family>Century Gothic</family>
@@ -390,7 +396,7 @@
        </widget>
       </item>
       <item row="1" column="4">
-       <widget class="QLineEdit" name="lineEdit_6">
+       <widget class="QLineEdit" name="input_address">
         <property name="font">
          <font>
           <family>Century Gothic</family>
@@ -400,7 +406,7 @@
        </widget>
       </item>
       <item row="0" column="4">
-       <widget class="QLineEdit" name="lineEdit_2">
+       <widget class="QLineEdit" name="input_last_name">
         <property name="font">
          <font>
           <family>Century Gothic</family>
@@ -423,7 +429,7 @@
        </widget>
       </item>
       <item row="7" column="2">
-       <widget class="QComboBox" name="comboBox_2">
+       <widget class="QComboBox" name="cbo_is_active">
         <property name="font">
          <font>
           <family>Century Gothic</family>
@@ -520,16 +526,16 @@
   </layout>
  </widget>
  <tabstops>
-  <tabstop>lineEdit</tabstop>
-  <tabstop>lineEdit_2</tabstop>
-  <tabstop>lineEdit_4</tabstop>
-  <tabstop>lineEdit_6</tabstop>
-  <tabstop>dateEdit</tabstop>
-  <tabstop>comboBox</tabstop>
-  <tabstop>lineEdit_3</tabstop>
-  <tabstop>lineEdit_7</tabstop>
-  <tabstop>lineEdit_8</tabstop>
-  <tabstop>lineEdit_9</tabstop>
+  <tabstop>input_first_name</tabstop>
+  <tabstop>input_last_name</tabstop>
+  <tabstop>input_phone</tabstop>
+  <tabstop>input_address</tabstop>
+  <tabstop>date_birthday</tabstop>
+  <tabstop>cbo_gender</tabstop>
+  <tabstop>input_email</tabstop>
+  <tabstop>input_emergency_name</tabstop>
+  <tabstop>input_emergency_phone</tabstop>
+  <tabstop>input_notes</tabstop>
  </tabstops>
  <resources/>
  <connections/>

@@ -1,10 +1,13 @@
-
 import sys
+import os
 import logging
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtWidgets import QMdiSubWindow
 
 from src.config import config
+from src.utils.status_bar_controller import StatusBarController
+from src.utils.status_type import StatusType
+
 
 from src.views.login_view import LoginView
 from src.views.main_view import MainView
@@ -19,6 +22,7 @@ class MainApplication:
     def __init__(self):
         self.setup_logging()
         self.logger = logging.getLogger(__name__)
+        self.load_stylesheet()
         self._init_login()
 
     def setup_logging(self):
@@ -33,6 +37,23 @@ class MainApplication:
                 logging.StreamHandler()
             ]
         )
+    
+    def load_stylesheet(self):
+        """Carga y aplica el stylesheet CSS global"""
+        try:
+            css_path = os.path.join(
+                os.path.dirname(__file__), 
+                'src', 'assets', 'styles.css'
+            )
+            
+            if os.path.exists(css_path):
+                with open(css_path, 'r', encoding='utf-8') as f:
+                    QApplication.instance().setStyleSheet(f.read())
+                self.logger.info("Stylesheet loaded successfully")
+            else:
+                self.logger.warning(f"Stylesheet not found at: {css_path}")
+        except Exception as e:
+            self.logger.error(f"Failed to load stylesheet: {e}")
         
     def _init_login(self):
         self.login_view = LoginView()
@@ -43,6 +64,7 @@ class MainApplication:
         self.current_user = user
         
         self.main_view = MainView()
+        self.status_bar_controller = StatusBarController(self.main_view.statusbar)
         self.main_presenter = MainPresenter(self.main_view, self, self.current_user)
         
         self.login_view.close()
@@ -50,12 +72,12 @@ class MainApplication:
     def open_members_form(self):
         self.logger.info("Opening members form")
         
-        member_view = MemberView()
-        member_presenter = MemberPresenter(member_view, self.current_user)
+        self.member_view = MemberView()
+        self.member_presenter = MemberPresenter(self.member_view, self, self.status_bar_controller.show_message, self.current_user)
         
         mdi_sub_window = QMdiSubWindow()
         
-        self.main_view.open_child_form(member_view, mdi_sub_window)
+        self.main_view.open_child_form(self.member_view, mdi_sub_window)
 
         
 def main():

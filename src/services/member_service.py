@@ -207,6 +207,7 @@ class MemberService:
             data['updated_at'] = datetime.now().isoformat()
             data.pop('created_at', None)   # Never overwrite creation timestamp
             data.pop('created_by', None)   # Never overwrite original creator
+            data.pop('member_code', None)  # member_code is immutable after creation
 
             rows = db_manager.update(table=_TABLE, data=data, filters={'id': member.id})
             updated = self._row_to_member(rows[0])
@@ -338,8 +339,7 @@ class MemberService:
     @staticmethod
     def _member_to_row(member: Member) -> dict:
         """Converts a Member dataclass into a plain dict suitable for Supabase."""
-        return {
-            'member_code': member.member_code,
+        row = {
             'first_name': member.first_name.strip(),
             'last_name': member.last_name.strip(),
             'email': member.email,
@@ -353,6 +353,11 @@ class MemberService:
             'notes': member.notes,
             'is_active': member.is_active,
         }
+        # Only include member_code when it has a value — an empty string would
+        # violate the UNIQUE constraint and corrupt existing records.
+        if member.member_code:
+            row['member_code'] = member.member_code
+        return row
 
 
 # Global instance

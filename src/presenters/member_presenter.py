@@ -1,15 +1,14 @@
-"""
-Member presenter — mediates between the member view and the member service.
-Follows the MVP pattern: the view emits signals, the presenter handles them
-by calling the service and instructing the view how to update itself.
-"""
 from __future__ import annotations
 
 import logging
 from typing import Optional
 
-from src.models import Member, Gender
+from src.utils.status_type import StatusType
+from src.models import Member, Gender, User
 from src.services.member_service import member_service
+
+from src.domain.permissions import Permissions
+from src.domain.permissions_service import PermissionService
 
 logger = logging.getLogger(__name__)
 
@@ -21,33 +20,31 @@ class MemberPresenter:
     and the service layer — neither the view nor the service knows each other.
     """
 
-    def __init__(self, view, current_user_id: Optional[str] = None):
+    def __init__(self, view, main_app, status_handler, current_user: Optional[User] = None):
         """
         Args:
-            view:            The member view instance. Must satisfy the view contract
-                             described at the bottom of this module.
-            current_user_id: ID of the logged-in user, forwarded to the service
-                             for audit fields (created_by / updated_by).
+            view:         The member view instance. Must satisfy the view contract
+                          described at the bottom of this module.
+            main_app:     The main application instance.
+            status_handler: The status handler for displaying messages.
+            current_user: The logged-in User object, used for permission checks
+                          and audit fields (created_by / updated_by).
         """
-        self.view = view
-        self._current_user_id = current_user_id
-        self._connect_signals()
+        self._is_editing = False
+        self._current_member_id: Optional[str] = None
+        self._current_user: Optional[User] = current_user
 
-    # ------------------------------------------------------------------
-    # Signal wiring
-    # ------------------------------------------------------------------
+        self.view = view
+        self.main_app = main_app
+        self.status_handler = status_handler
+        self._connect_signals()
+        self._handle_load_all()  # Load all members when the view opens
 
     def _connect_signals(self):
         """Connects view signals to their corresponding handler methods."""
-        pass
-        # self.view.load_requested.connect(self._handle_load_all)
+        self.view.create_requested.connect(self._handle_create)
+        self.view.update_requested.connect(self._handle_update)
         # self.view.search_requested.connect(self._handle_search)
-        # self.view.create_requested.connect(self._handle_create)
-        # self.view.update_requested.connect(self._handle_update)
-
-    # ------------------------------------------------------------------
-    # Handlers
-    # ------------------------------------------------------------------
 
     def _handle_load_all(self):
         """
@@ -89,26 +86,59 @@ class MemberPresenter:
         On success: clears the form and refreshes the table.
         On failure: surfaces the error message to the view.
         """
-        data = self.view.get_form_data()
 
-        # Build the Member dataclass from raw form values
-        member = self._build_member_from_form(data)
+        data = self.view.get_form_data() or {}
 
-        result = member_service.create_member(
-            member=member,
-            created_by=self._current_user_id,
-        )
+        try:
+            if self._is_editing:
+                if self._current_member_id is None:
+                    self._emit_error("Member ID is required for updates")
+                    return
+                
+                if not PermissionService.has_permission(self._current_user, Permissions.MEMBERS_UPDATE):
+                    self._emit_error("You do not have permission to update members")
+                    return
+                
+                member = self._build_member_from_form(data, member_id=self._current_member_id)
+                result = member_service.update_member(
+                    member=member,
+                    updated_by=self._current_user.id if self._current_user else None,
+                )
 
-        if result:
-            logger.info(f"Member created: {result.data.member_code if result.data else 'unknown'}")
-            self.view.show_success("Member created successfully")
-            self.view.clear_form()
-            self._handle_load_all()
-        else:
-            logger.warning(f"Member creation failed: {result.error}")
-            self.view.show_error(result.error)
+                if result:
+                    logger.info(f"Member updated: {result.data.member_code if result.data else 'unknown'}")
+                    self._emit_success("Member updated successfully")
+                    self._is_editing = False
+                    self._current_member_id = None
+                    self.view.clear_form()
+                    self._handle_load_all()
+                else:
+                    logger.warning(f"Member update failed: {result.error}")
+                    self._emit_error(result.error or "Update failed")
+            else:
+                if not PermissionService.has_permission(self._current_user, Permissions.MEMBERS_CREATE):
+                    self._emit_error("You do not have permission to create members")
+                    return
+                
+                member = self._build_member_from_form(data)
+                result = member_service.create_member(
+                    member=member,
+                    created_by=self._current_user.id if self._current_user else None,
+                )
 
-    def _handle_update(self):
+                if result:
+                    logger.info(f"Member created: {result.data.member_code if result.data else 'unknown'}")
+                    self._emit_success("Member created successfully")
+                    self.view.clear_form()
+                    self._handle_load_all()
+                else:
+                    logger.warning(f"Member creation failed: {result.error}")
+                    self._emit_error(result.error or "Creation failed")
+        except Exception as e:
+            logger.error(f"Error in create/update handler: {e}")
+            self._emit_error("An unexpected error occurred. Please try again.")
+
+    def _handle_update(self) -> None:
         """
         Reads form data and the selected member id from the view, then
         delegates the update to the service.
@@ -116,33 +146,21 @@ class MemberPresenter:
         On success: clears the form and refreshes the table.
         On failure: surfaces the error message to the view.
         """
-        member_id = self.view.get_selected_member_id()
-        if not member_id:
-            self.view.show_error("No member selected for update")
+        data = self.view.get_selected_member_data() or {}
+
+        if not data or not data.get('id'):
+            self._emit_error("No member selected for update")
             return
+        
+        self._is_editing = True
+        self._current_member_id = data.get('id')   # UUID, not member_code
+        self.view.set_form_data(data)
 
-        data = self.view.get_form_data()
+    def _emit_error(self, message: str) -> None:
+        self.status_handler(message, 3000, StatusType.ERROR)
 
-        # Build the Member dataclass, injecting the existing id
-        member = self._build_member_from_form(data, member_id=member_id)
-
-        result = member_service.update_member(
-            member=member,
-            updated_by=self._current_user_id,
-        )
-
-        if result:
-            logger.info(f"Member updated: {member_id}")
-            self.view.show_success("Member updated successfully")
-            self.view.clear_form()
-            self._handle_load_all()
-        else:
-            logger.warning(f"Member update failed: {result.error}")
-            self.view.show_error(result.error)
-
-    # ------------------------------------------------------------------
-    # Private helpers
-    # ------------------------------------------------------------------
+    def _emit_success(self, message: str) -> None:
+        self.status_handler(message, 3000, StatusType.SUCCESS)
 
     @staticmethod
     def _build_member_from_form(data: dict, member_id: Optional[str] = None) -> Member:
@@ -175,26 +193,3 @@ class MemberPresenter:
             is_active=data.get('is_active', True),
         )
 
-
-# ---------------------------------------------------------------------------
-# View contract (for documentation purposes)
-# ---------------------------------------------------------------------------
-#
-# The view class connected to this presenter must expose:
-#
-# Signals:
-#   load_requested   — emitted when the view opens or needs a full refresh
-#   search_requested — emitted with a str search term
-#   create_requested — emitted when the user clicks [Save]
-#   update_requested — emitted when the user clicks [Update]
-#
-# Methods:
-#   get_form_data()                        -> dict
-#       Must include keys: first_name, last_name, email, phone,
-#       date_of_birth, gender, address, emergency_contact_name,
-#       emergency_contact_phone, notes, is_active (bool from combobox)
-#   get_selected_member_id()               -> str | None
-#   populate_table(members: list[Member])  -> None
-#   clear_form()                           -> None
-#   show_success(message: str)             -> None
-#   show_error(message: str)               -> None
