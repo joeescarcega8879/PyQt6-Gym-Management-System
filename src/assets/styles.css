@@ -212,7 +212,7 @@ QPlainTextEdit {
     color: #FFFFFF;
     border: 1px solid #3D3D3D;
     border-radius: 4px;
-    padding: 6px 10px;
+    padding: 3px 8px;
     font-size: 10pt;
     selection-background-color: #2196F3;
 }
@@ -248,9 +248,9 @@ QComboBox {
     color: #FFFFFF;
     border: 1px solid #3D3D3D;
     border-radius: 4px;
-    padding: 6px 10px;
+    padding: 3px 8px;
     font-size: 10pt;
-    min-height: 28px;
+    min-height: 24px;
 }
 
 QComboBox:hover {
@@ -310,9 +310,9 @@ QDateTimeEdit {
     color: #FFFFFF;
     border: 1px solid #3D3D3D;
     border-radius: 4px;
-    padding: 6px 10px;
+    padding: 3px 8px;
     font-size: 10pt;
-    min-height: 28px;
+    min-height: 24px;
 }
 
 QDateEdit:focus,
@@ -388,7 +388,7 @@ QTableView {
 
 QTableWidget::item,
 QTableView::item {
-    padding: 8px;
+    padding: 4px 8px;
     border: none;
 }
 
@@ -410,7 +410,7 @@ QHeaderView::section {
     border: none;
     border-right: 1px solid #3D3D3D;
     border-bottom: 1px solid #3D3D3D;
-    padding: 8px;
+    padding: 5px 8px;
     font-weight: bold;
     font-size: 10pt;
 }
@@ -534,8 +534,8 @@ QGroupBox {
     background-color: #2D2D2D;
     border: 1px solid #3D3D3D;
     border-radius: 6px;
-    margin-top: 12px;
-    padding-top: 12px;
+    margin-top: 8px;
+    padding-top: 6px;
     font-size: 11pt;
     font-weight: bold;
 }
@@ -543,7 +543,7 @@ QGroupBox {
 QGroupBox::title {
     subcontrol-origin: margin;
     subcontrol-position: top left;
-    padding: 4px 10px;
+    padding: 2px 8px;
     color: #2196F3;
     background-color: transparent;
 }
