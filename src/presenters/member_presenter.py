@@ -44,7 +44,8 @@ class MemberPresenter:
         """Connects view signals to their corresponding handler methods."""
         self.view.create_requested.connect(self._handle_create)
         self.view.update_requested.connect(self._handle_update)
-        # self.view.search_requested.connect(self._handle_search)
+        self.view.cancel_requested.connect(self._handle_cancel)
+        self.view.search_requested.connect(self._handle_search)
 
     def _handle_load_all(self):
         """
@@ -155,6 +156,15 @@ class MemberPresenter:
         self._is_editing = True
         self._current_member_id = data.get('id')   # UUID, not member_code
         self.view.set_form_data(data)
+
+    def _handle_cancel(self) -> None:
+        """
+        Cancels any in-progress create or update operation.
+        Resets editing state and clears the form.
+        """
+        self._is_editing = False
+        self._current_member_id = None
+        self.view.clear_form()
 
     def _emit_error(self, message: str) -> None:
         self.status_handler(message, 3000, StatusType.ERROR)

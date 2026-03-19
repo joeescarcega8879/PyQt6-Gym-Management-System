@@ -219,69 +219,6 @@ class MemberService:
             logger.error(f"Failed to update member {member.id}: {e}")
             return ServiceResult.fail(f"Could not update member: {e}")
 
-    def deactivate_member(self, member_id: str) -> ServiceResult[None]:
-        """
-        Soft-deletes a member by marking them as inactive.
-        The record is preserved in the database for historical reporting.
-
-        Args:
-            member_id: UUID of the member to deactivate.
-
-        Returns:
-            ServiceResult with no data payload on success.
-        """
-        try:
-            existing = db_manager.select(table=_TABLE, filters={'id': member_id})
-            if not existing:
-                return ServiceResult.fail(f"Member with id '{member_id}' not found")
-
-            if not existing[0].get('is_active', True):
-                return ServiceResult.fail("Member is already inactive")
-
-            db_manager.update(
-                table=_TABLE,
-                data={'is_active': False, 'updated_at': datetime.now().isoformat()},
-                filters={'id': member_id},
-            )
-
-            logger.info(f"Member deactivated: {member_id}")
-            return ServiceResult.ok()
-
-        except Exception as e:
-            logger.error(f"Failed to deactivate member {member_id}: {e}")
-            return ServiceResult.fail(f"Could not deactivate member: {e}")
-
-    def reactivate_member(self, member_id: str) -> ServiceResult[None]:
-        """
-        Restores a previously deactivated member to active status.
-
-        Args:
-            member_id: UUID of the member to reactivate.
-
-        Returns:
-            ServiceResult with no data payload on success.
-        """
-        try:
-            existing = db_manager.select(table=_TABLE, filters={'id': member_id})
-            if not existing:
-                return ServiceResult.fail(f"Member with id '{member_id}' not found")
-
-            if existing[0].get('is_active', False):
-                return ServiceResult.fail("Member is already active")
-
-            db_manager.update(
-                table=_TABLE,
-                data={'is_active': True, 'updated_at': datetime.now().isoformat()},
-                filters={'id': member_id},
-            )
-
-            logger.info(f"Member reactivated: {member_id}")
-            return ServiceResult.ok()
-
-        except Exception as e:
-            logger.error(f"Failed to reactivate member {member_id}: {e}")
-            return ServiceResult.fail(f"Could not reactivate member: {e}")
-
     # ------------------------------------------------------------------
     # PRIVATE HELPERS
     # ------------------------------------------------------------------

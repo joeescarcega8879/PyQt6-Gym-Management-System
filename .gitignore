@@ -79,3 +79,8 @@ htmlcov/
 backups/
 *.backup
 *.bak
+
+# ============================================
+# Docs (internal notes, not for version control)
+# ============================================
+docs/

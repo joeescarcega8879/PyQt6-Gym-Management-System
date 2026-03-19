@@ -1,9 +1,7 @@
 import os
 from PyQt6 import uic
 from PyQt6.QtCore import pyqtSignal, QDate, Qt
-from PyQt6.QtWidgets import QWidget, QHeaderView
-from datetime import datetime
-
+from PyQt6.QtWidgets import QWidget, QMessageBox, QHeaderView
 from src.utils.set_format import SetFormat
 
 class MemberView(QWidget):
@@ -11,6 +9,7 @@ class MemberView(QWidget):
     # Signals for communication with the presenter
     create_requested = pyqtSignal()
     update_requested = pyqtSignal()
+    cancel_requested = pyqtSignal()
     search_requested = pyqtSignal(str)
 
     def __init__(self):
@@ -27,6 +26,9 @@ class MemberView(QWidget):
 
         self.btn_save.clicked.connect(self.create_requested.emit)
         self.btn_update.clicked.connect(self.update_requested.emit)
+        self.btn_cancel.clicked.connect(self.cancel_requested.emit)
+        self.btn_search.clicked.connect(lambda: self.on_search_text_changed(self.input_search.text()))
+        self.input_search.returnPressed.connect(lambda: self.on_search_text_changed(self.input_search.text()))
         self.btn_close.clicked.connect(self.close)
 
         self.init_combo_boxes()
@@ -65,9 +67,6 @@ class MemberView(QWidget):
         first_cell = self.table_members.item(self.table_members.currentRow(), 0)
         member_uuid = first_cell.data(Qt.ItemDataRole.UserRole) if first_cell else None
 
-        print(selected_items[0].text())
-        print(member_uuid)
-
         return {
             "id": member_uuid,
             "member_code": selected_items[0].text(),
@@ -104,6 +103,9 @@ class MemberView(QWidget):
         self.cbo_gender.setCurrentText(data.get("gender", ""))
         self.cbo_is_active.setCurrentText("Active" if data.get("is_active", True) else "Inactive")
 
+    def on_search_text_changed(self, text: str) -> None:
+        self.search_requested.emit(text)
+
     def init_combo_boxes(self) -> None:
         # Initialize gender
         self.cbo_gender.addItem("Male", "male")
@@ -112,6 +114,12 @@ class MemberView(QWidget):
         # Initialize is_active
         self.cbo_is_active.addItem("Active", True)
         self.cbo_is_active.addItem("Inactive", False)
+
+        # Initialize search options
+        self.cbo_search_options.addItem("First Name", "first_name")
+        self.cbo_search_options.addItem("Last Name", "last_name")
+        self.cbo_search_options.addItem("Email", "email")
+        self.cbo_search_options.addItem("By Member Code", "member_code")
 
     def populate_table(self, members: list) -> None:
 
@@ -135,17 +143,19 @@ class MemberView(QWidget):
         ]
         SetFormat.format_qtablewidget(self.table_members, headers, rows)
 
-        # Ensure the Code column is always visible with a reasonable minimum width.
-        self.table_members.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
-        self.table_members.setColumnWidth(0, 130)
-
-        # Attach the UUID (member.id) as hidden data on the first cell of each
-        # row so get_selected_member_data() can retrieve it for update/delete
-        # operations without exposing it in the visible table columns.
+        # Store the UUID as hidden UserRole data on column 0 of each row so that
+        # get_selected_member_data() can return the real UUID for update/delete.
         for row_index, member in enumerate(members):
-            first_cell = self.table_members.item(row_index, 0)
-            if first_cell is not None:
-                first_cell.setData(Qt.ItemDataRole.UserRole, member.id)
+            cell = self.table_members.item(row_index, 0)
+            if cell:
+                cell.setData(Qt.ItemDataRole.UserRole, str(member.id))
+
+        # SetFormat uses ResizeToContents which collapses the Code column.
+        # Override it to a fixed readable width.
+        self.table_members.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.ResizeMode.Fixed
+        )
+        self.table_members.setColumnWidth(0, 130)
 
     def clear_form(self) -> None:
         self.input_first_name.clear()
@@ -157,3 +167,9 @@ class MemberView(QWidget):
         self.input_emergency_name.clear()
         self.input_emergency_phone.clear()
         self.input_notes.clear()
+        self.cbo_gender.setCurrentIndex(0)
+        self.cbo_is_active.setCurrentIndex(0)
+
+    def show_error(self, message: str) -> None:
+        """Displays a critical error dialog to the user."""
+        QMessageBox.critical(self, "Error", message or "An unexpected error occurred.")
