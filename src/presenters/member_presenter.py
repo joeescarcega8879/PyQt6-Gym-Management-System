@@ -63,22 +63,45 @@ class MemberPresenter:
     def _handle_search(self, term: str):
         """
         Searches for members matching the given term and updates the table.
+        The search column is determined by the view's search option combobox.
 
         Args:
-            term: Partial string to match against name or email.
+            term:   Partial string to match. Empty string triggers a full reload.
         """
+        current_search_option = self.view.get_selected_search_option()
+        if not current_search_option:
+            self._emit_error("Please select a search option")
+            return
+
+        # Normalize: treat blank input as "show all" regardless of search mode
         if not term or not term.strip():
-            # Empty search → show all members instead
             self._handle_load_all()
             return
 
-        result = member_service.search_members(term)
+        if current_search_option == "member_code":
+            # Exact-match lookup by member code
+            result = member_service.get_member_by_code(term.strip())
 
-        if result:
-            self.view.populate_table(result.data)
+            if result:
+                self.view.populate_table([result.data])
+            elif result.is_not_found:
+                # Informational — record simply doesn't exist, not a service error
+                logger.info(f"Member code lookup: no match for '{term.strip()}'")
+                self._emit_error(result.error or "No member found with that code")
+            else:
+                # Technical failure (DB error, connection issue, etc.)
+                logger.warning(f"Member code search failed: {result.error}")
+                self.view.show_error(result.error)
+
         else:
-            logger.warning(f"Member search failed: {result.error}")
-            self.view.show_error(result.error)
+            # Partial-match search restricted to the selected column
+            result = member_service.search_members(term, column=current_search_option)
+
+            if result:
+                self.view.populate_table(result.data)
+            else:
+                logger.warning(f"Member search failed: {result.error}")
+                self.view.show_error(result.error)
 
     def _handle_create(self):
         """
@@ -165,6 +188,8 @@ class MemberPresenter:
         self._is_editing = False
         self._current_member_id = None
         self.view.clear_form()
+
+        self._emit_success("Operation cancelled")
 
     def _emit_error(self, message: str) -> None:
         self.status_handler(message, 3000, StatusType.ERROR)

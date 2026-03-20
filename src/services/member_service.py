@@ -79,25 +79,31 @@ class MemberService:
             member_code: The human-readable code assigned to the member.
 
         Returns:
-            ServiceResult with the Member object, or an error if not found.
+            ServiceResult with the Member object.
+            Returns ServiceResult.not_found() when no record matches —
+            distinct from a technical failure so callers can show an
+            informational message instead of an error dialog.
         """
         try:
             rows = db_manager.select(table=_TABLE, filters={'member_code': member_code})
             if not rows:
-                return ServiceResult.fail(f"Member with code '{member_code}' not found")
+                return ServiceResult.not_found(f"No member found with code '{member_code}'")
             return ServiceResult.ok(self._row_to_member(rows[0]))
 
         except Exception as e:
             logger.error(f"Failed to fetch member by code {member_code}: {e}")
             return ServiceResult.fail(f"Could not retrieve member: {e}")
 
-    def search_members(self, term: str) -> ServiceResult[list[Member]]:
+    def search_members(self, term: str, column: Optional[str] = None) -> ServiceResult[list[Member]]:
         """
-        Searches for active members by first name, last name, or email.
-        Runs three partial-match queries and merges unique results.
+        Searches for active members by a partial, case-insensitive match.
 
         Args:
-            term: The search string (case-insensitive partial match).
+            term:   The search string.
+            column: When provided, restricts the search to that single column
+                    ('first_name', 'last_name', or 'email').
+                    When None, searches across all three columns and merges
+                    unique results (original behaviour).
 
         Returns:
             ServiceResult with a list of matching Member objects.
@@ -105,12 +111,19 @@ class MemberService:
         if not term or not term.strip():
             return ServiceResult.fail("Search term cannot be empty")
 
+        # Determine which columns to search
+        _SEARCHABLE_COLUMNS = ('first_name', 'last_name', 'email')
+        if column and column in _SEARCHABLE_COLUMNS:
+            columns_to_search = (column,)
+        else:
+            columns_to_search = _SEARCHABLE_COLUMNS
+
         try:
             seen_ids: set[str] = set()
             members: list[Member] = []
 
-            for column in ('first_name', 'last_name', 'email'):
-                rows = db_manager.search(table=_TABLE, column=column, search_term=term.strip())
+            for col in columns_to_search:
+                rows = db_manager.search(table=_TABLE, column=col, search_term=term.strip())
                 for row in rows:
                     # Skip inactive members and already-seen results
                     if not row.get('is_active', True):
