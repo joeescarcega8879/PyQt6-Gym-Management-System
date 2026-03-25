@@ -9,4 +9,8 @@ PERMISSIONS = {
     Permissions.MEMBERS_UPDATE: {UserRole.ADMIN, UserRole.RECEPTIONIST},
     Permissions.MEMBERS_DELETE: {UserRole.ADMIN},
 
+    # Permissions related to attendance
+    Permissions.ATTENDANCE_READ: {UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.INSTRUCTOR},
+    Permissions.ATTENDANCE_CREATE: {UserRole.RECEPTIONIST, UserRole.ADMIN},
+
 }

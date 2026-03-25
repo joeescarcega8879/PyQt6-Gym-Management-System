@@ -1,4 +1,3 @@
-
 class Permissions:
     """
     Permissions class defines the various permissions that can be assigned to users or roles in the system.
@@ -10,3 +9,7 @@ class Permissions:
     MEMBERS_READ = "members.read"
     MEMBERS_UPDATE = "members.update"
     MEMBERS_DELETE = "members.delete"
+
+    # Permissions related to attendance
+    ATTENDANCE_CREATE = "attendance.create"
+    ATTENDANCE_READ = "attendance.read" 

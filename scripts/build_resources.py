@@ -14,10 +14,18 @@ ASSETS_DIR = os.path.join(os.path.dirname(__file__), "..", "src", "assets")
 OUTPUT_FILE = os.path.join(ASSETS_DIR, "resources_rc.py")
 
 ICONS = {
-    ":/icons/IMG-Close.png":      os.path.join(ASSETS_DIR, "icons", "IMG-Close.png"),
-    ":/icons/IMG-Members.png":    os.path.join(ASSETS_DIR, "icons", "IMG-Members.png"),
-    ":/icons/IMG-Attendence.png": os.path.join(ASSETS_DIR, "icons", "IMG-Attendence.png"),
-    ":/icons/IMG-Pyments.png":    os.path.join(ASSETS_DIR, "icons", "IMG-Pyments.png"),
+    ":/icons/IMG-Close.png":        os.path.join(ASSETS_DIR, "icons", "IMG-Close.png"),
+    ":/icons/IMG-Members.png":      os.path.join(ASSETS_DIR, "icons", "IMG-Members.png"),
+    ":/icons/IMG-Attendence.png":   os.path.join(ASSETS_DIR, "icons", "IMG-Attendence.png"),
+    ":/icons/IMG-Pyments.png":      os.path.join(ASSETS_DIR, "icons", "IMG-Pyments.png"),
+    ":/icons/IMG-Dashboard.png":    os.path.join(ASSETS_DIR, "icons", "IMG-Dashboard.png"),
+    ":/icons/IMG-Memberships.png":  os.path.join(ASSETS_DIR, "icons", "IMG-Memberships.png"),
+    ":/icons/IMG-Classes.png":      os.path.join(ASSETS_DIR, "icons", "IMG-Classes.png"),
+    ":/icons/IMG-Instructors.png":  os.path.join(ASSETS_DIR, "icons", "IMG-Instructors.png"),
+    ":/icons/IMG-Equipment.png":    os.path.join(ASSETS_DIR, "icons", "IMG-Equipment.png"),
+    ":/icons/IMG-Reports.png":      os.path.join(ASSETS_DIR, "icons", "IMG-Reports.png"),
+    ":/icons/IMG-Settings.png":     os.path.join(ASSETS_DIR, "icons", "IMG-Settings.png"),
+    ":/icons/IMG-Logout.png":       os.path.join(ASSETS_DIR, "icons", "IMG-Logout.png"),
 }
 
 # ---------------------------------------------------------------------------

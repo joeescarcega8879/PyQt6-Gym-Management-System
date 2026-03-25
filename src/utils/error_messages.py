@@ -51,6 +51,20 @@ class ErrorMessages:
     MEMBERS_OPERATION_CANCELLED = "Operation cancelled"
     MEMBERS_UNEXPECTED_ERROR = "An unexpected error occurred. Please try again."
 
+    # Attendance module
+    ATTENDANCE_NO_PERMISSION_READ   = "You do not have permission to view attendance"
+    ATTENDANCE_NO_PERMISSION_CREATE = "You do not have permission to register attendance"
+    ATTENDANCE_MEMBER_NOT_FOUND     = "No active member found with that code or name"
+    ATTENDANCE_ALREADY_CHECKED_IN   = "This member already has an open check-in today"
+    ATTENDANCE_NO_OPEN_CHECKIN      = "This member has no open check-in to close"
+    ATTENDANCE_NO_SELECTION         = "Please select an attendance record"
+    ATTENDANCE_CHECKIN_SUCCESS      = "Check-in registered successfully"
+    ATTENDANCE_CHECKOUT_SUCCESS     = "Check-out registered successfully"
+    ATTENDANCE_CHECKIN_FAILED       = "Failed to register check-in"
+    ATTENDANCE_CHECKOUT_FAILED      = "Failed to register check-out"
+    ATTENDANCE_SEARCH_EMPTY         = "Please enter a member code or name to search"
+    ATTENDANCE_UNEXPECTED_ERROR     = "An unexpected error occurred. Please try again."
+
 
     @staticmethod
     def log_and_mask_error(error: Exception, context: str, user_message: Optional[str] = None) -> str:

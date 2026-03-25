@@ -1,8 +1,0 @@
-<RCC>
-  <qresource prefix="/icons">
-    <file>icons/IMG-Close.png</file>
-    <file>icons/IMG-Members.png</file>
-    <file>icons/IMG-Attendence.png</file>
-    <file>icons/IMG-Pyments.png</file>
-  </qresource>
-</RCC>
