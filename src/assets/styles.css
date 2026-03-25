@@ -23,7 +23,7 @@
 }
 
 QWidget {
-    background-color: #1E1E1E;
+    background-color: rgb(30, 30, 30);
     color: #FFFFFF;
     font-size: 11pt;
 }

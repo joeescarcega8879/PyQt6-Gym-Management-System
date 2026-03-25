@@ -123,11 +123,14 @@ class MemberService:
             members: list[Member] = []
 
             for col in columns_to_search:
-                rows = db_manager.search(table=_TABLE, column=col, search_term=term.strip())
+                rows = db_manager.search(
+                    table=_TABLE,
+                    column=col,
+                    search_term=term.strip(),
+                    filters={'is_active': True},  # Filter applied at DB level, not in Python
+                )
                 for row in rows:
-                    # Skip inactive members and already-seen results
-                    if not row.get('is_active', True):
-                        continue
+                    # Deduplicate results when searching across multiple columns
                     if row['id'] not in seen_ids:
                         seen_ids.add(row['id'])
                         members.append(self._row_to_member(row))

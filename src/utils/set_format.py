@@ -42,7 +42,7 @@ class SetFormat:
         # Populate data
         for row in range(num_rows):
 
-            row_color = QColor("#f0f0f0") if row % 2 == 0 else QColor("#ffffff")
+            row_color = QColor("#2d2d2d") if row % 2 == 0 else QColor("#353535")
 
             for column in range(num_cols):
                 item = QTableWidgetItem(str(lst_data[row][column]))

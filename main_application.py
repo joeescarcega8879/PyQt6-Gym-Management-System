@@ -8,7 +8,6 @@ from src.config import config
 from src.utils.status_bar_controller import StatusBarController
 from src.utils.status_type import StatusType
 
-
 from src.views.login_view import LoginView
 from src.views.main_view import MainView
 from src.views.member_view import MemberView
@@ -16,6 +15,8 @@ from src.views.member_view import MemberView
 from src.presenters.login_presenter import LoginPresenter
 from src.presenters.main_presenter import MainPresenter
 from src.presenters.member_presenter import MemberPresenter
+
+import src.assets.resources_rc  # noqa — loads embedded icons into memory
 
 
 class MainApplication:
@@ -84,7 +85,8 @@ def main():
     app = QApplication(sys.argv)
     
     controller = MainApplication()
-    sys.exit(app.exec())
+    # sys.exit(app.exec())
+    app.exec()
     
 if __name__ == "__main__":
     main()

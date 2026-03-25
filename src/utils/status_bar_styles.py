@@ -14,4 +14,17 @@ STATUS_BAR_STYLES = {
             color: #a12f2f;
         }
     """,
+
+    StatusType.WARNING: """
+        .QStatusBar {
+            background-color: #fff4e5;
+            color: #a15c1f;
+        }
+    """,
+    StatusType.INFO: """
+        .QStatusBar {
+            background-color: #e5f3ff;
+            color: #1f5ca1;
+        }
+    """
 }

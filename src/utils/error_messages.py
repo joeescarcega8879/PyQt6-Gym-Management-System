@@ -36,6 +36,21 @@ class ErrorMessages:
     UPDATE_SUCCESS = "Record updated successfully."
     UPDATE_FAILED = "Failed to update record. Please try again."
 
+    # Members module
+    MEMBERS_NO_PERMISSION_READ = "You do not have permission to view members"
+    MEMBERS_NO_PERMISSION_CREATE = "You do not have permission to create members"
+    MEMBERS_NO_PERMISSION_UPDATE = "You do not have permission to update members"
+    MEMBERS_SELECT_SEARCH_OPTION = "Please select a search option"
+    MEMBERS_NOT_FOUND_BY_CODE = "No member found with that code"
+    MEMBERS_ID_REQUIRED = "Member ID is required for updates"
+    MEMBERS_NO_SELECTION = "Please select a member to update"
+    MEMBERS_CREATED = "Member created successfully"
+    MEMBERS_CREATION_FAILED = "Creation failed"
+    MEMBERS_UPDATED = "Member updated successfully"
+    MEMBERS_UPDATE_FAILED = "Update failed"
+    MEMBERS_OPERATION_CANCELLED = "Operation cancelled"
+    MEMBERS_UNEXPECTED_ERROR = "An unexpected error occurred. Please try again."
+
 
     @staticmethod
     def log_and_mask_error(error: Exception, context: str, user_message: Optional[str] = None) -> str:

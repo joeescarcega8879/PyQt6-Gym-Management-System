@@ -27,80 +27,87 @@
        <enum>QFrame::NoFrame</enum>
       </property>
       <layout class="QGridLayout" name="gridLayout_2">
-       <item row="0" column="0">
+       <item row="1" column="0">
         <widget class="QPushButton" name="btn_dashboard">
          <property name="text">
           <string>Dashboard</string>
          </property>
         </widget>
        </item>
-       <item row="1" column="0">
-        <widget class="QPushButton" name="btn_members">
+        <item row="3" column="0">
+         <widget class="QPushButton" name="btn_attendance">
+          <property name="text">
+           <string>Attendance</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QPushButton" name="btn_members">
+          <property name="text">
+           <string>Members</string>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="0">
+         <widget class="QPushButton" name="btn_payments">
+          <property name="text">
+           <string>Payments</string>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="0">
+         <widget class="QPushButton" name="btn_memberships">
+          <property name="text">
+           <string>Memberships</string>
+          </property>
+         </widget>
+        </item>
+        <item row="7" column="0">
+         <widget class="QPushButton" name="btn_instructors">
+          <property name="text">
+           <string>Instructors</string>
+          </property>
+         </widget>
+        </item>
+        <item row="9" column="0">
+         <widget class="QPushButton" name="btn_reports">
+          <property name="text">
+           <string>Reports</string>
+          </property>
+         </widget>
+        </item>
+        <item row="8" column="0">
+         <widget class="QPushButton" name="btn_equipment">
+          <property name="text">
+           <string>Equipment</string>
+          </property>
+         </widget>
+        </item>
+        <item row="6" column="0">
+         <widget class="QPushButton" name="btn_classes">
+          <property name="text">
+           <string>Classes</string>
+          </property>
+         </widget>
+        </item>
+        <item row="11" column="0">
+         <widget class="QPushButton" name="btn_logout">
+          <property name="text">
+           <string>Logout</string>
+          </property>
+         </widget>
+        </item>
+        <item row="10" column="0">
+         <widget class="QPushButton" name="btn_settings">
+          <property name="text">
+           <string>Settings</string>
+          </property>
+         </widget>
+        </item>
+       <item row="0" column="0">
+        <widget class="QPushButton" name="btn_colapse">
          <property name="text">
-          <string>Miembros</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QPushButton" name="btn_attendance">
-         <property name="text">
-          <string>Asistencia</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <widget class="QPushButton" name="btn_payments">
-         <property name="text">
-          <string>Pagos</string>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="0">
-        <widget class="QPushButton" name="btn_memberships">
-         <property name="text">
-          <string>Membresías</string>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="0">
-        <widget class="QPushButton" name="btn_classes">
-         <property name="text">
-          <string>Clases</string>
-         </property>
-        </widget>
-       </item>
-       <item row="6" column="0">
-        <widget class="QPushButton" name="btn_instructors">
-         <property name="text">
-          <string>Instructores</string>
-         </property>
-        </widget>
-       </item>
-       <item row="7" column="0">
-        <widget class="QPushButton" name="btn_equipment">
-         <property name="text">
-          <string>Equipamiento</string>
-         </property>
-        </widget>
-       </item>
-       <item row="8" column="0">
-        <widget class="QPushButton" name="btn_reports">
-         <property name="text">
-          <string>Reportes</string>
-         </property>
-        </widget>
-       </item>
-       <item row="9" column="0">
-        <widget class="QPushButton" name="btn_settings">
-         <property name="text">
-          <string>Configuración</string>
-         </property>
-        </widget>
-       </item>
-       <item row="10" column="0">
-        <widget class="QPushButton" name="btn_logout">
-         <property name="text">
-          <string>Cerrar Sesión</string>
+          <string>&lt; Collapse</string>
          </property>
         </widget>
        </item>

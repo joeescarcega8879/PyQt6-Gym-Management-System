@@ -223,7 +223,8 @@ class DatabaseManager:
     # ============================================
 
     def search(self, table: str, column: str, search_term: str,
-               columns: str = "*") -> List[Dict[str, Any]]:
+               columns: str = "*",
+               filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """
         Performs a case-insensitive text search on a column.
 
@@ -232,14 +233,22 @@ class DatabaseManager:
             column: Column to search within.
             search_term: Text to search for.
             columns: Columns to return in results.
+            filters: Optional equality filters applied alongside the ILIKE
+                     condition, e.g. {'is_active': True}.
 
         Returns:
             List[Dict]: Matching records.
         """
         try:
-            response = self.client.table(table).select(columns).ilike(
+            query = self.client.table(table).select(columns).ilike(
                 column, f"%{search_term}%"
-            ).execute()
+            )
+
+            if filters:
+                for col, value in filters.items():
+                    query = query.eq(col, value)
+
+            response = query.execute()
             return response.data
 
         except Exception as e:

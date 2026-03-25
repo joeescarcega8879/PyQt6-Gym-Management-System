@@ -2,8 +2,9 @@ import os
 import sys
 from PyQt6 import uic
 from PyQt6 import QtCore
-from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtCore import pyqtSignal, QSize
 from PyQt6.QtWidgets import QMainWindow, QApplication
+from src.assets.resources_rc import get_icon
 
 
 class MainView(QMainWindow):
@@ -25,6 +26,16 @@ class MainView(QMainWindow):
         uic.loadUi(ui_path, self)
 
         self.btn_members.clicked.connect(self.form_members_requested.emit)
+        self.btn_colapse.clicked.connect(self.toggle_sidebar_frame)
+
+        # Assign sidebar icons
+        icon_size = QSize(24, 24)
+        self.btn_members.setIcon(get_icon(":/icons/IMG-Members.png"))
+        self.btn_members.setIconSize(icon_size)
+        self.btn_attendance.setIcon(get_icon(":/icons/IMG-Attendence.png"))
+        self.btn_attendance.setIconSize(icon_size)
+        self.btn_payments.setIcon(get_icon(":/icons/IMG-Pyments.png"))
+        self.btn_payments.setIconSize(icon_size)
         
         self.show()
 
@@ -48,6 +59,38 @@ class MainView(QMainWindow):
         self.mdi_area.addSubWindow(mdiSubWindow)
         mdiSubWindow.showMaximized()
         
+    def toggle_sidebar_frame(self) -> None:
+        if self.sidebar_frame.width() == 220:
+            self.sidebar_frame.setFixedWidth(64)
+            self.btn_colapse.setText(">")
+            self.btn_dashboard.setText("")
+            self.btn_members.setText("")
+            self.btn_attendance.setText("")
+            self.btn_payments.setText("")
+            self.btn_memberships.setText("")
+            self.btn_settings.setText("")
+            self.btn_classes.setText("")
+            self.btn_instructors.setText("")
+            self.btn_equipment.setText("")
+            self.btn_reports.setText("")
+            self.btn_settings.setText("")
+            self.btn_logout.setText("")
+            
+        else:
+            self.sidebar_frame.setFixedWidth(220)
+            self.btn_colapse.setText("< Collapse")
+            self.btn_dashboard.setText("Dashboard")
+            self.btn_members.setText("Members")
+            self.btn_attendance.setText("Attendance")
+            self.btn_payments.setText("Payments")
+            self.btn_memberships.setText("Memberships")
+            self.btn_settings.setText("Settings")
+            self.btn_classes.setText("Classes")
+            self.btn_instructors.setText("Instructors")
+            self.btn_equipment.setText("Equipment")
+            self.btn_reports.setText("Reports")
+            self.btn_settings.setText("Settings")
+            self.btn_logout.setText("Logout")
 
 if __name__ == "__main__":
     

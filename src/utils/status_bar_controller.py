@@ -27,6 +27,6 @@ class StatusBarController:
         
         self.status_bar.showMessage(message, duration)
 
-        QTimer.singleShot(duration, lambda: self.status_bar.setStyleSheet("background-color: white;"))
+        QTimer.singleShot(duration, lambda: self.status_bar.setStyleSheet("background-color: rgb(30, 30, 30);"))
 
            

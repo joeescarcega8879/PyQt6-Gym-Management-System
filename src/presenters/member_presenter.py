@@ -4,6 +4,7 @@ import logging
 from typing import Optional
 
 from src.utils.status_type import StatusType
+from src.utils.error_messages import ErrorMessages
 from src.models import Member, Gender, User
 from src.services.member_service import member_service
 
@@ -38,21 +39,30 @@ class MemberPresenter:
         self.main_app = main_app
         self.status_handler = status_handler
         self._connect_signals()
+        self._load_user_information()
         self._handle_load_all()  # Load all members when the view opens
 
     def _connect_signals(self):
         """Connects view signals to their corresponding handler methods."""
         self.view.create_requested.connect(self._handle_create)
-        self.view.update_requested.connect(self._handle_update)
+        self.view.update_requested.connect(self._handle_edit_requested)
         self.view.cancel_requested.connect(self._handle_cancel)
         self.view.search_requested.connect(self._handle_search)
+        self.view.no_selection_error.connect(lambda: self._emit_error(ErrorMessages.MEMBERS_NO_SELECTION))
+        self.view.clear_action_requested.connect(self._handle_clear_search)
+        self.view.show_inactive_requested.connect(self._handle_load_all)
 
     def _handle_load_all(self):
         """
         Loads all active members and populates the view table.
         Triggered when the view first opens or requests a full refresh.
         """
-        result = member_service.get_all_members()
+        if not PermissionService.has_permission(self._current_user, Permissions.MEMBERS_READ):
+            self._emit_error(ErrorMessages.MEMBERS_NO_PERMISSION_READ)
+            return
+        
+        include_inactive = self.view.check_show_inactives.isChecked()
+        result = member_service.get_all_members(include_inactive=include_inactive)
 
         if result:
             self.view.populate_table(result.data)
@@ -70,7 +80,7 @@ class MemberPresenter:
         """
         current_search_option = self.view.get_selected_search_option()
         if not current_search_option:
-            self._emit_error("Please select a search option")
+            self._emit_error(ErrorMessages.MEMBERS_SELECT_SEARCH_OPTION)
             return
 
         # Normalize: treat blank input as "show all" regardless of search mode
@@ -87,7 +97,7 @@ class MemberPresenter:
             elif result.is_not_found:
                 # Informational — record simply doesn't exist, not a service error
                 logger.info(f"Member code lookup: no match for '{term.strip()}'")
-                self._emit_error(result.error or "No member found with that code")
+                self._emit_info(result.error or ErrorMessages.MEMBERS_NOT_FOUND_BY_CODE)
             else:
                 # Technical failure (DB error, connection issue, etc.)
                 logger.warning(f"Member code search failed: {result.error}")
@@ -103,6 +113,13 @@ class MemberPresenter:
                 logger.warning(f"Member search failed: {result.error}")
                 self.view.show_error(result.error)
 
+    def _handle_clear_search(self) -> None:
+        """
+        Clears the search input and resets the table to show all members.
+        """
+        self.view.clear_search()
+        self._handle_load_all()
+
     def _handle_create(self):
         """
         Reads form data from the view, builds a Member instance and
@@ -116,11 +133,11 @@ class MemberPresenter:
         try:
             if self._is_editing:
                 if self._current_member_id is None:
-                    self._emit_error("Member ID is required for updates")
+                    self._emit_error(ErrorMessages.MEMBERS_ID_REQUIRED)
                     return
                 
                 if not PermissionService.has_permission(self._current_user, Permissions.MEMBERS_UPDATE):
-                    self._emit_error("You do not have permission to update members")
+                    self._emit_error(ErrorMessages.MEMBERS_NO_PERMISSION_UPDATE)
                     return
                 
                 member = self._build_member_from_form(data, member_id=self._current_member_id)
@@ -131,17 +148,17 @@ class MemberPresenter:
 
                 if result:
                     logger.info(f"Member updated: {result.data.member_code if result.data else 'unknown'}")
-                    self._emit_success("Member updated successfully")
+                    self._emit_success(ErrorMessages.MEMBERS_UPDATED)
                     self._is_editing = False
                     self._current_member_id = None
                     self.view.clear_form()
                     self._handle_load_all()
                 else:
                     logger.warning(f"Member update failed: {result.error}")
-                    self._emit_error(result.error or "Update failed")
+                    self._emit_error(result.error or ErrorMessages.MEMBERS_UPDATE_FAILED)
             else:
                 if not PermissionService.has_permission(self._current_user, Permissions.MEMBERS_CREATE):
-                    self._emit_error("You do not have permission to create members")
+                    self._emit_error(ErrorMessages.MEMBERS_NO_PERMISSION_CREATE)
                     return
                 
                 member = self._build_member_from_form(data)
@@ -152,17 +169,17 @@ class MemberPresenter:
 
                 if result:
                     logger.info(f"Member created: {result.data.member_code if result.data else 'unknown'}")
-                    self._emit_success("Member created successfully")
+                    self._emit_success(ErrorMessages.MEMBERS_CREATED)
                     self.view.clear_form()
                     self._handle_load_all()
                 else:
                     logger.warning(f"Member creation failed: {result.error}")
-                    self._emit_error(result.error or "Creation failed")
+                    self._emit_error(result.error or ErrorMessages.MEMBERS_CREATION_FAILED)
         except Exception as e:
             logger.error(f"Error in create/update handler: {e}")
-            self._emit_error("An unexpected error occurred. Please try again.")
+            self._emit_error(ErrorMessages.MEMBERS_UNEXPECTED_ERROR)
 
-    def _handle_update(self) -> None:
+    def _handle_edit_requested(self) -> None:
         """
         Reads form data and the selected member id from the view, then
         delegates the update to the service.
@@ -173,9 +190,9 @@ class MemberPresenter:
         data = self.view.get_selected_member_data() or {}
 
         if not data or not data.get('id'):
-            self._emit_error("No member selected for update")
+            self._emit_error(ErrorMessages.MEMBERS_NO_SELECTION)
             return
-        
+       
         self._is_editing = True
         self._current_member_id = data.get('id')   # UUID, not member_code
         self.view.set_form_data(data)
@@ -189,14 +206,25 @@ class MemberPresenter:
         self._current_member_id = None
         self.view.clear_form()
 
-        self._emit_success("Operation cancelled")
+        self._emit_success(ErrorMessages.MEMBERS_OPERATION_CANCELLED)
 
+    def _load_user_information(self) -> None:
+        user_info = {
+            "username": self._current_user.username if self._current_user else "Unknown",
+            "role": self._current_user.role.value if self._current_user else "Unknown"
+        }
+
+        self.view.set_user_info(user_info)
+        
     def _emit_error(self, message: str) -> None:
         self.status_handler(message, 3000, StatusType.ERROR)
 
     def _emit_success(self, message: str) -> None:
         self.status_handler(message, 3000, StatusType.SUCCESS)
 
+    def _emit_info(self, message: str) -> None:
+        self.status_handler(message, 3000, StatusType.INFO)
+        
     @staticmethod
     def _build_member_from_form(data: dict, member_id: Optional[str] = None) -> Member:
         """

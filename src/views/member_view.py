@@ -1,8 +1,9 @@
 import os
 from PyQt6 import uic
-from PyQt6.QtCore import pyqtSignal, QDate, Qt
-from PyQt6.QtWidgets import QWidget, QMessageBox, QHeaderView
+from PyQt6.QtCore import pyqtSignal, QDate, Qt, QSize
+from PyQt6.QtWidgets import QWidget, QMessageBox
 from src.utils.set_format import SetFormat
+from src.assets.resources_rc import get_icon
 
 class MemberView(QWidget):
 
@@ -10,7 +11,10 @@ class MemberView(QWidget):
     create_requested = pyqtSignal()
     update_requested = pyqtSignal()
     cancel_requested = pyqtSignal()
+    show_inactive_requested = pyqtSignal(bool)
     search_requested = pyqtSignal(str)
+    clear_action_requested = pyqtSignal()
+    no_selection_error = pyqtSignal()
 
     def __init__(self):
         super(MemberView, self).__init__()
@@ -25,14 +29,23 @@ class MemberView(QWidget):
         uic.loadUi(ui_path, self)
 
         self.btn_save.clicked.connect(self.create_requested.emit)
-        self.btn_update.clicked.connect(self.update_requested.emit)
+        self.btn_update.clicked.connect(self.show_message_update_confirmation)
         self.btn_cancel.clicked.connect(self.cancel_requested.emit)
+        self.btn_clear.clicked.connect(self.clear_action_requested.emit)
+
         self.btn_search.clicked.connect(lambda: self.on_search_text_changed(self.input_search.text()))
         self.input_search.returnPressed.connect(lambda: self.on_search_text_changed(self.input_search.text()))
+        self.check_show_inactives.stateChanged.connect(lambda state: self.show_inactive_requested.emit(state == Qt.CheckState.Checked))
+        
         self.btn_close.clicked.connect(self.close)
+        self.btn_close.setIcon(get_icon(":/icons/IMG-Close.png"))
+        self.btn_close.setIconSize(QSize(20, 20))
 
         self.init_combo_boxes()
-        
+
+        self.date_birthday.setMinimumDate(QDate(1900, 1, 1))
+        self.date_birthday.setMaximumDate(QDate.currentDate())
+
 
     def get_form_data(self) -> dict | None:
         return{
@@ -40,7 +53,11 @@ class MemberView(QWidget):
             "last_name": self.input_last_name.text(),
             "email": self.input_email.text(),
             "phone": self.input_phone.text(),
-            "date_of_birth": self.date_birthday.date().toPyDate(),
+            "date_of_birth": (
+                self.date_birthday.date().toPyDate()
+                if self.date_birthday.date() != self.date_birthday.minimumDate()
+                else None
+            ),
             "gender": self.cbo_gender.currentData(),
             "address": self.input_address.text(),
             "emergency_contact_name": self.input_emergency_name.text(),
@@ -99,10 +116,17 @@ class MemberView(QWidget):
             qDate = QDate.fromString(date_of_birth, "yyyy-MM-dd")
             if qDate.isValid():
                 self.date_birthday.setDate(qDate)
+
         
-        self.cbo_gender.setCurrentText(data.get("gender", ""))
+        index = self.cbo_gender.findData(data.get("gender", ""))
+        if index != -1:
+            self.cbo_gender.setCurrentIndex(index)
+        
         self.cbo_is_active.setCurrentText("Active" if data.get("is_active", True) else "Inactive")
 
+    def get_selected_search_option(self) -> str:
+        return  self.cbo_search_options.currentData()
+    
     def on_search_text_changed(self, text: str) -> None:
         self.search_requested.emit(text)
 
@@ -119,7 +143,7 @@ class MemberView(QWidget):
         self.cbo_search_options.addItem("First Name", "first_name")
         self.cbo_search_options.addItem("Last Name", "last_name")
         self.cbo_search_options.addItem("Email", "email")
-        self.cbo_search_options.addItem("By Member Code", "member_code")
+        self.cbo_search_options.addItem("Member Code", "member_code")
 
     def populate_table(self, members: list) -> None:
 
@@ -143,20 +167,6 @@ class MemberView(QWidget):
         ]
         SetFormat.format_qtablewidget(self.table_members, headers, rows)
 
-        # Store the UUID as hidden UserRole data on column 0 of each row so that
-        # get_selected_member_data() can return the real UUID for update/delete.
-        for row_index, member in enumerate(members):
-            cell = self.table_members.item(row_index, 0)
-            if cell:
-                cell.setData(Qt.ItemDataRole.UserRole, str(member.id))
-
-        # SetFormat uses ResizeToContents which collapses the Code column.
-        # Override it to a fixed readable width.
-        self.table_members.horizontalHeader().setSectionResizeMode(
-            0, QHeaderView.ResizeMode.Fixed
-        )
-        self.table_members.setColumnWidth(0, 130)
-
     def clear_form(self) -> None:
         self.input_first_name.clear()
         self.input_last_name.clear()
@@ -169,7 +179,27 @@ class MemberView(QWidget):
         self.input_notes.clear()
         self.cbo_gender.setCurrentIndex(0)
         self.cbo_is_active.setCurrentIndex(0)
+    
+    def clear_search(self) -> None:
+        self.input_search.clear()
+        self.cbo_search_options.setCurrentIndex(0)
+        
+    def set_user_info(self, user_info: dict) -> None:
+        self.label_user_name.setText(f"Username: {user_info.get('username', 'Unknown')}")
+        self.label_user_role.setText(f"Role: {user_info.get('role', 'Unknown')}")
 
-    def show_error(self, message: str) -> None:
-        """Displays a critical error dialog to the user."""
-        QMessageBox.critical(self, "Error", message or "An unexpected error occurred.")
+    def show_message_update_confirmation(self) -> None:
+
+        if not self.get_selected_member_data():
+            self.no_selection_error.emit()
+            return
+        
+        reply = QMessageBox.question(
+            self,
+            "Confirm Update",
+            "Are you sure you want to update this member's information?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            self.update_requested.emit()
