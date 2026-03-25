@@ -86,11 +86,6 @@ backups/
 docs/
 
 # ============================================
-# Contexto interno del proyecto
-# ============================================
-CONTEXT.md
-
-# ============================================
 # Generated asset files (rebuild with scripts/build_resources.py)
 # ============================================
-src/assets/resources_rc.py
+# src/assets/resources_rc.py  # now tracked in version control
