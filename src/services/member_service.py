@@ -23,10 +23,7 @@ _TABLE = 'members'
 class MemberService:
     """Handles all business operations related to gym members."""
 
-    # ------------------------------------------------------------------
-    # READ OPERATIONS
-    # ------------------------------------------------------------------
-
+    # Public methods
     def get_all_members(self, include_inactive: bool = False) -> ServiceResult[list[Member]]:
         """
         Retrieves all members from the database.
@@ -141,10 +138,6 @@ class MemberService:
             logger.error(f"Member search failed for term '{term}': {e}")
             return ServiceResult.fail(f"Search failed: {e}")
 
-    # ------------------------------------------------------------------
-    # WRITE OPERATIONS
-    # ------------------------------------------------------------------
-
     def create_member(self, member: Member, created_by: Optional[str] = None) -> ServiceResult[Member]:
         """
         Validates and persists a new member to the database.
@@ -235,10 +228,8 @@ class MemberService:
             logger.error(f"Failed to update member {member.id}: {e}")
             return ServiceResult.fail(f"Could not update member: {e}")
 
-    # ------------------------------------------------------------------
-    # PRIVATE HELPERS
-    # ------------------------------------------------------------------
-
+    
+    # Private helper methods
     @staticmethod
     def _validate_member(member: Member) -> Optional[str]:
         """
@@ -311,7 +302,6 @@ class MemberService:
         if member.member_code:
             row['member_code'] = member.member_code
         return row
-
 
 # Global instance
 member_service = MemberService()

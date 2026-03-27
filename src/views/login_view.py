@@ -37,5 +37,12 @@ class LoginView(QWidget):
         self.input_password.clear()
         self.input_username.setFocus()
         
+    def set_loading(self, loading: bool):
+        """Disables or enables interactive widgets during a login attempt."""
+        self.btn_login.setEnabled(not loading)
+        self.input_username.setEnabled(not loading)
+        self.input_password.setEnabled(not loading)
+        self.btn_login.setText("Logging in..." if loading else "Login")
+
     def show_error(self, message):
         QMessageBox.critical(self, "Login Error", message)

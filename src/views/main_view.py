@@ -11,6 +11,7 @@ class MainView(QMainWindow):
 
     # Signal to indicate that a child form should be opened
     form_members_requested = pyqtSignal()
+    form_attendance_requested = pyqtSignal()
     
     def __init__(self):
         super(MainView, self).__init__()
@@ -26,6 +27,8 @@ class MainView(QMainWindow):
         uic.loadUi(ui_path, self)
 
         self.btn_members.clicked.connect(self.form_members_requested.emit)
+        self.btn_attendance.clicked.connect(self.form_attendance_requested.emit)
+        
         self.btn_colapse.clicked.connect(self.toggle_sidebar_frame)
 
         # Assign sidebar icons
@@ -34,9 +37,9 @@ class MainView(QMainWindow):
         self.btn_dashboard.setIconSize(icon_size)
         self.btn_members.setIcon(get_icon(":/icons/IMG-Members.png"))
         self.btn_members.setIconSize(icon_size)
-        self.btn_attendance.setIcon(get_icon(":/icons/IMG-Attendence.png"))
+        self.btn_attendance.setIcon(get_icon(":/icons/IMG-Attendance.png"))
         self.btn_attendance.setIconSize(icon_size)
-        self.btn_payments.setIcon(get_icon(":/icons/IMG-Pyments.png"))
+        self.btn_payments.setIcon(get_icon(":/icons/IMG-Payments.png"))
         self.btn_payments.setIconSize(icon_size)
         self.btn_memberships.setIcon(get_icon(":/icons/IMG-Memberships.png"))
         self.btn_memberships.setIconSize(icon_size)

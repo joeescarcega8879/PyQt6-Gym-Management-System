@@ -34,11 +34,12 @@ src/
 
 ## Módulos Implementados
 
-| Módulo    | Estado       | Notas                                      |
-|-----------|--------------|--------------------------------------------|
-| Login     | Completo     | bcrypt, roles, sesión                      |
-| Members   | Completo     | CRUD funcional, tests, código limpio       |
-| Otros     | No iniciados | Sidebar conectado solo al módulo Members   |
+| Módulo     | Estado          | Notas                                                        |
+|------------|-----------------|--------------------------------------------------------------|
+| Login      | Completo        | bcrypt, roles, sesión. Login en QThread (no bloquea UI)      |
+| Members    | Completo        | CRUD funcional, tests, código limpio                         |
+| Attendance | En progreso     | Service + tests completos. View (.ui) lista. Falta presenter + view.py + wiring en main |
+| Otros      | No iniciados    | Sidebar conectado solo a Members y (pendiente) Attendance    |
 
 ---
 
@@ -55,235 +56,172 @@ src/
 
 ---
 
-## Historial de Cambios — Módulo Members
+## Módulo Attendance — Estado Actual
 
-### Sesión inicial de análisis
-- Análisis completo del proyecto y feedback del módulo Members.
-- Identificados 22 problemas entre bugs críticos, lógica incorrecta y deuda técnica.
+### Lo que ya existe ✅
+| Archivo                                   | Estado   | Notas                                                      |
+|-------------------------------------------|----------|------------------------------------------------------------|
+| `src/models/models.py` — `Attendance`     | Completo | Dataclass con member_id, check_in/out_time, notes, member  |
+| `src/services/attendance_service.py`      | Completo | 4 métodos: get_by_date, search_member, check_in, check_out |
+| `tests/test_attendance_service.py`        | Completo | 39 tests, 100% passing                                     |
+| `src/views/ui/attendance_view.ui`         | Completo | Layout Qt Designer listo (ver detalles abajo)              |
+
+### Lo que falta ❌
+| Archivo                                      | Responsabilidad                                          |
+|----------------------------------------------|----------------------------------------------------------|
+| `src/views/attendance_view.py`               | QWidget que carga el .ui, señales, populate_table        |
+| `src/presenters/attendance_presenter.py`     | Lógica UI: check-in, check-out, filtrar por fecha        |
+| Wiring en `main_application.py`              | `open_attendance_form()` + señal en MainView/Presenter   |
+
+### Layout del .ui (attendance_view.ui)
+Widgets disponibles (nombres exactos del .ui):
+- **Top bar:** `label_user_name`, `label_user_role`, `btn_close`
+- **Registro:** `input_search` (QLineEdit, placeholder "Code or name..."), `btn_checkin`, `btn_checkout`
+- **Filtro:** `date_filter` (QDateEdit, calendarPopup=true, format yyyy-MM-dd), `btn_today`, `label_status`
+- **Tabla:** `attendance_table` (QTableWidget)
+- **Splitter:** `splitter_main` (vertical, top=controles, bottom=tabla)
+
+### Columnas propuestas para `attendance_table`
+| # | Header        | Fuente                                |
+|---|---------------|---------------------------------------|
+| 0 | Member Code   | `attendance.member.member_code`       |
+| 1 | Full Name     | `attendance.member.full_name`         |
+| 2 | Check-in      | `attendance.check_in_time` (HH:MM)   |
+| 3 | Check-out     | `attendance.check_out_time` (HH:MM)  |
+| 4 | Duration      | diferencia check_out - check_in       |
+| 5 | Notes         | `attendance.notes`                    |
+
+### Flujo de Check-in
+1. Usuario escribe en `input_search` (código o nombre).
+2. Hace clic en `btn_checkin`.
+3. Presenter llama `attendance_service.search_member_for_checkin(term)`.
+4. Si hay 1 resultado → llama `check_in(member.id, current_user.id)`.
+5. Si hay múltiples resultados → mostrar diálogo de selección (QListWidget o QMessageBox informativo).
+6. Si not_found → mostrar error en `label_status`.
+7. Al éxito → recargar tabla del día actual.
+
+### Flujo de Check-out
+1. Usuario selecciona fila en `attendance_table` (registro sin check-out).
+2. Hace clic en `btn_checkout`.
+3. Presenter llama `attendance_service.check_out(attendance_id)`.
+4. Al éxito → recargar tabla.
+5. Si no hay selección → error en `label_status`.
+6. Si registro ya tiene check-out → error en `label_status`.
+
+### Flujo de Filtro por Fecha
+1. `date_filter` arranca con `QDate.currentDate()`.
+2. Al cambiar la fecha → recargar tabla automáticamente (`dateChanged` signal).
+3. `btn_today` → resetea `date_filter` a hoy y recarga.
 
 ---
 
-### Paso 2 — Conectar `btn_clear` ✅
-**Archivos:** `member_view.py`, `member_presenter.py`
+## Historial de Cambios
 
+### Bug Fix — Login bloqueante (KeyboardInterrupt en arranque en frío) ✅
+**Archivos:** `src/presenters/login_presenter.py`, `src/views/login_view.py`
+
+**Causa raíz:** `_handle_login()` corría en el UI thread. En el primer arranque del día,
+`bcrypt.checkpw()` + la petición de red a Supabase tardaban varios segundos bloqueando
+el event loop de Qt, que interpretaba la espera como `KeyboardInterrupt`.
+
+**Solución:** QThread worker pattern.
+- Agregada clase `LoginWorker(QThread)` en `login_presenter.py`.
+  - `run()` ejecuta `auth_service.login()` en background.
+  - Emite `login_success(User)` o `login_failed(str)` al terminar.
+- `LoginPresenter._handle_login()` instancia el worker, conecta señales y lo arranca.
+- `_on_worker_success()` / `_on_worker_failed()` manejan el resultado en el UI thread.
+- Agregado `set_loading(bool)` en `LoginView`:
+  - Deshabilita `btn_login`, `input_username`, `input_password` durante el login.
+  - Cambia texto del botón a `"Logging in..."` mientras espera.
+
+---
+
+### Módulo Members — Historial completo
+
+#### Sesión inicial de análisis
+- Análisis completo del proyecto y feedback del módulo Members.
+- Identificados 22 problemas entre bugs críticos, lógica incorrecta y deuda técnica.
+
+#### Paso 2 — Conectar `btn_clear` ✅
 - Agregada señal `clear_action_requested = pyqtSignal()` en la vista.
 - Conectado `btn_clear.clicked` a `clear_action_requested.emit`.
 - Conectada la señal en el presenter a `_handle_load_all()`.
 
----
-
-### Paso 1 — Corregir género en `set_form_data()` ✅
-**Archivo:** `member_view.py` línea 108
-
+#### Paso 1 — Corregir género en `set_form_data()` ✅
 - Reemplazado `setCurrentText(data.get("gender"))` por `findData()` + `setCurrentIndex()`.
-- El género ahora se selecciona correctamente al cargar datos de edición.
-- Pendiente: eliminar `print(index)` de la línea 110 antes de producción.
+
+#### Paso 5 — Tratar "not found" como info ✅
+- Agregado `StatusType.INFO` al enum y estilo azul en `status_bar_styles.py`.
+- Búsqueda sin resultados muestra INFO en lugar de ERROR.
+
+#### Paso 6 — Poblar `label_user_name` y `label_user_role` ✅
+- Método `_load_user_information()` en presenter + `set_user_info(dict)` en vista.
+
+#### Paso 8 — Control UI para mostrar/ocultar inactivos ✅
+- `QCheckBox check_show_inactives` + señal `show_inactive_requested`.
+
+#### Paso 10 — Validar permiso `MEMBERS_READ` al cargar tabla ✅
+- Verificación de `PermissionService.has_permission(MEMBERS_READ)` en `_handle_load_all()`.
+
+#### Paso 7 — Mover filtro `is_active` al query de Supabase ✅
+- `search()` en `database/manager.py` acepta `filters` opcionales.
+- `search_members()` pasa `filters={'is_active': True}` en lugar de filtrar en Python.
+
+#### Paso 11 — Diálogo de confirmación antes de actualizar ✅
+- `QMessageBox.question()` antes de `update_member()`.
+
+#### Paso 12 — Corregir colores de tabla para tema oscuro ✅
+- `set_format.py`: colores alternados `#2d2d2d` / `#353535`.
+
+#### Paso 13 — Corregir ruta de ícono rota en `member_view.ui` ✅
+- Eliminada ruta absoluta a otro proyecto. `btn_close` ahora muestra texto `"Close"`.
+
+#### Paso 14 — Estandarizar idioma a inglés ✅
+- Traducidos todos los botones del sidebar en `main_window.ui`.
+
+#### Paso 16 — Sistema de íconos (Qt Resource System base64) ✅
+- `scripts/build_resources.py` embebe íconos de `src/assets/icons/` como base64.
+- `resources_rc.py` expone `get_icon(path) -> QIcon`. Asignados 12 íconos.
+- `resources_rc.py` en `.gitignore` (archivo generado).
+
+#### Paso E — `date_birthday` min/max + `get_form_data()` ✅
+- `minimumDate` = 1900-01-01, `maximumDate` = hoy.
+- `get_form_data()` devuelve `None` cuando fecha == minimumDate.
+
+#### Paso F — Eliminar código muerto + import huérfano ✅
+- Eliminado bloque comentado `setSectionResizeMode/setColumnWidth` + import `QHeaderView`.
+
+#### Paso G — Centralizar mensajes en `ErrorMessages` ✅
+- 13 constantes en sección `# Members module` de `error_messages.py`.
+- Cero strings inline en `member_presenter.py`.
 
 ---
 
-### Paso 5 — Tratar "not found" como info, no como error ✅
-**Archivo:** `member_presenter.py` línea 93
+## Tests — Estado Actual
 
-- Agregado método `_emit_info()` que usa `StatusType.INFO`.
-- En `_handle_search()`, bloque `elif result.is_not_found` ahora llama `_emit_info()`.
-- Agregado `StatusType.INFO` al enum `status_type.py`.
-- Agregado estilo azul para `INFO` en `status_bar_styles.py`.
+**Total: 172 tests, 100% passing.**
 
----
-
-### Paso 6 — Poblar `label_user_name` y `label_user_role` ✅
-**Archivos:** `member_presenter.py`, `member_view.py`
-
-- Agregado método `_load_user_information()` en el presenter.
-- Agregado método `set_user_info(user_info: dict)` en la vista.
-- Se muestra `username` y `role.value` del usuario logueado en la barra superior.
-- Nota: se muestra `username` en lugar de `full_name` (decisión de diseño pendiente de confirmar).
-
----
-
-### Paso 8 — Control UI para mostrar/ocultar miembros inactivos ✅
-**Archivos:** `member_view.py`, `member_presenter.py`
-
-- Agregado `QCheckBox` `check_show_inactives` en la zona del buscador.
-- Agregada señal `show_inactive_requested` conectada a `_handle_load_all()`.
-- `_handle_load_all()` lee `check_show_inactives.isChecked()` para pasar `include_inactive`.
-
----
-
-### Paso 10 — Validar permiso `MEMBERS_READ` al cargar tabla ✅
-**Archivo:** `member_presenter.py` — `_handle_load_all()`
-
-- Agregada verificación de `PermissionService.has_permission(MEMBERS_READ)` antes de cargar.
-
----
-
-### Paso 7 — Mover filtro `is_active` al query de Supabase ✅
-**Archivos:** `src/database/manager.py`, `src/services/member_service.py`
-
-**Problema resuelto:** `search_members()` traía todos los resultados de Supabase y luego
-filtraba los inactivos en Python. Ineficiente para datasets grandes.
-
-**Cambios en `database/manager.py`:**
-- Agregado parámetro opcional `filters: Optional[Dict[str, Any]] = None` a `search()`.
-- Los filtros se aplican con `.eq()` encadenado al query ILIKE, igual que en `select()`.
-
-**Cambios en `services/member_service.py`:**
-- `search_members()` ahora pasa `filters={'is_active': True}` a `db_manager.search()`.
-- Eliminado el `if not row.get('is_active', True): continue` del loop Python.
-- El loop ahora solo deduplica resultados por `id`.
-
-### Paso 11 — Diálogo de confirmación antes de actualizar ✅
-**Archivo:** `member_presenter.py` — `_handle_create()` bloque `if self._is_editing`
-
-- Agregado `QMessageBox.question()` antes de ejecutar `member_service.update_member()`.
-- Si el usuario cancela el diálogo, la operación se aborta sin modificar datos.
-
----
-
-### Paso 12 — Corregir colores de tabla para tema oscuro ✅
-**Archivo:** `src/utils/set_format.py` línea 45
-
-- Reemplazados los colores claros (`#f0f0f0` / `#ffffff`) por colores oscuros (`#2d2d2d` / `#353535`).
-- Las filas alternadas ahora son compatibles con el stylesheet oscuro global.
-
----
-
-### Paso 13 — Corregir ruta de ícono en `member_view.ui` ✅
-**Archivo:** `src/views/ui/member_view.ui`
-
-- Eliminada la referencia al ícono externo con ruta absoluta a otro proyecto (`../../../../PyQt6-Warehouse-System/...`).
-- `btn_close` ahora muestra el texto `"Close"` en lugar de un ícono roto.
-
----
-
-### Paso 14 — Estandarizar idioma a inglés ✅
-**Archivo:** `src/views/ui/main_window.ui`
-
-- Traducidos todos los botones del sidebar de español a inglés:
-  - `"Miembros"` → `"Members"`
-  - `"Asistencia"` → `"Attendance"`
-  - `"Pagos"` → `"Payments"`
-  - `"Membresías"` → `"Memberships"`
-  - `"Clases"` → `"Classes"`
-  - `"Instructores"` → `"Instructors"`
-  - `"Equipamiento"` → `"Equipment"`
-  - `"Reportes"` → `"Reports"`
-  - `"Configuración"` → `"Settings"`
-  - `"Cerrar Sesión"` → `"Logout"`
-- El `.ui` y `toggle_sidebar_frame()` en `main_view.py` ahora usan el mismo idioma (inglés).
-
----
-
-### Paso 16 — Sistema de íconos (Qt Resource System) ✅
-**Archivos:** `scripts/build_resources.py`, `src/assets/resources_rc.py` (generado), `main_application.py`, `src/views/member_view.py`, `src/views/main_view.py`, `.gitignore`
-
-**Problema resuelto:** `pyrcc6` fue eliminado en PyQt6 6.x. No se puede compilar `.qrc` al estilo tradicional.
-
-**Solución:**
-- Creado `scripts/build_resources.py` que embebe los íconos de `src/assets/icons/` como base64 en `src/assets/resources_rc.py`.
-- `resources_rc.py` expone `get_icon(path: str) -> QIcon`. Los íconos se asignan desde Python, no desde `.ui`.
-- `main_application.py` importa `src.assets.resources_rc` (noqa) para asegurar disponibilidad global.
-- `src/assets/resources_rc.py` agregado a `.gitignore` (archivo generado, no versionable).
-- `src/assets/resources.qrc` **eliminado** — era el archivo de configuración del Qt Resource System clásico (usado por `pyrcc6`), quedó obsoleto e inactivo al adoptar el enfoque base64. No era importado por ningún módulo.
-
-**Íconos asignados (12 en total):**
-- `btn_close` en `member_view.py` → `IMG-Close.png` (20×20)
-- Todos los botones del sidebar en `main_view.py` → tamaño 24×24:
-
-| Botón | Ícono |
-|---|---|
-| `btn_dashboard` | `IMG-Dashboard.png` |
-| `btn_members` | `IMG-Members.png` |
-| `btn_attendance` | `IMG-Attendence.png` |
-| `btn_payments` | `IMG-Pyments.png` |
-| `btn_memberships` | `IMG-Memberships.png` |
-| `btn_classes` | `IMG-Classes.png` |
-| `btn_instructors` | `IMG-Instructors.png` |
-| `btn_equipment` | `IMG-Equipment.png` |
-| `btn_reports` | `IMG-Reports.png` |
-| `btn_settings` | `IMG-Settings.png` |
-| `btn_logout` | `IMG-Logout.png` |
-
-**Nota cross-platform:** los íconos son portables en cualquier SO (Windows, macOS, Linux). Al estar embebidos como base64 no dependen de rutas en disco ni del sistema de archivos.
-
-**Eliminado:** `print(index)` debug en `member_view.py` línea 115.
-
----
-
-### Paso E — Corregir `date_birthday` min/max y `get_form_data()` ✅
-**Archivo:** `src/views/member_view.py`
-
-- `initialize_components()` ahora llama `setMinimumDate(QDate(1900, 1, 1))` y `setMaximumDate(QDate.currentDate())`.
-- `get_form_data()` devuelve `None` para `date_of_birth` cuando la fecha es igual a `minimumDate` (usuario no ingresó fecha).
-- `clear_form()` ya era correcto: llama `setDate(minimumDate())`, que ahora es 1900-01-01 en lugar del inválido 1752-09-14.
-
----
-
-### Paso F — Eliminar código muerto y import huérfano ✅
-**Archivo:** `src/views/member_view.py`
-
-- Eliminado bloque de 4 líneas comentadas (`setSectionResizeMode` / `setColumnWidth`) que ya no se usaban.
-- Eliminado import `QHeaderView` que quedó huérfano al comentar ese bloque.
-
----
-
-### Paso G — Centralizar mensajes en `ErrorMessages` ✅
-**Archivos:** `src/utils/error_messages.py`, `src/presenters/member_presenter.py`
-
-- Agregadas 13 constantes en la sección `# Members module` de `ErrorMessages`.
-- Todos los strings literales en `member_presenter.py` reemplazados por referencias a `ErrorMessages.*`.
-- Verificado con grep: cero strings inline quedan en el presenter.
-- 133 tests siguen pasando al 100%.
-
----
-
-## Todo List — Estado Actual
-
-### Completados ✅
-- [x] 2. Conectar `btn_clear`
-- [x] 1. Corregir `set_form_data()` — género
-- [x] 5. Tratar "not found" como info
-- [x] 6. Poblar `label_user_name` y `label_user_role`
-- [x] 8. Control UI para mostrar/ocultar inactivos
-- [x] 10. Validar permiso `MEMBERS_READ`
-- [x] 7. Mover filtro `is_active` al query en `search_members()`
-- [x] 11. Diálogo de confirmación antes de actualizar (refactorizado en sesión de revisión final)
-- [x] 12. Corregir colores de tabla para tema oscuro
-- [x] 13. Corregir ruta de ícono en `member_view.ui`
-- [x] 14. Estandarizar idioma a inglés
-- [x] 16. Sistema de íconos con Qt Resource System (base64)
-- [x] 15. Agregar tests unitarios
-- [x] A. Renombrar `_handle_update` → `_handle_edit_requested`
-- [x] B. Validación sin selección — señal `no_selection_error` (Opción A)
-- [x] C. Eliminar señal `search_option_changed` (no se consumía)
-- [x] D. `btn_clear` limpia `input_search` y resetea `cbo_search_options` — método `clear_search()` en la view
-- [x] E. `date_birthday` con `minimumDate` correcto + `get_form_data()` devuelve `None` cuando no hay fecha
-- [x] F. Eliminar código comentado muerto + import huérfano `QHeaderView`
-- [x] G. Centralizar 13 strings inline en `ErrorMessages` — sección `# Members module`
-
-### Descartados por diseño ✋
-- ~~3. Separar create y update en el presenter~~
-- ~~9. Implementar funcionalidad Delete~~ (el soft-delete se hace via Update)
-
-### Pendientes
-_(ninguno — módulo Members completo)_
-
----
-
-### Paso 15 — Tests Unitarios ✅
-**Archivos:** `tests/__init__.py`, `tests/conftest.py`, `tests/test_service_result.py`, `tests/test_member_service.py`, `tests/test_permissions.py`, `tests/test_auth_service.py`, `pytest.ini`
-
-**Cobertura:** 133 tests, 100% passing.
-
-| Archivo de test               | Módulo cubierto              | Tests |
-|-------------------------------|------------------------------|-------|
-| `test_service_result.py`      | `services/result.py`         | 16    |
-| `test_member_service.py`      | `services/member_service.py` | 62    |
-| `test_permissions.py`         | `domain/permissions*.py`     | 21    |
-| `test_auth_service.py`        | `services/auth_service.py`   | 31    |
-| `conftest.py`                 | Fixtures compartidas         | —     |
+| Archivo de test               | Módulo cubierto                  | Tests |
+|-------------------------------|----------------------------------|-------|
+| `test_service_result.py`      | `services/result.py`             | 16    |
+| `test_member_service.py`      | `services/member_service.py`     | 62    |
+| `test_permissions.py`         | `domain/permissions*.py`         | 21    |
+| `test_auth_service.py`        | `services/auth_service.py`       | 31    |
+| `test_attendance_service.py`  | `services/attendance_service.py` | 39    |
+| `conftest.py`                 | Fixtures compartidas             | —     |
 
 **Estrategia de mocking:**
-- `db_manager` parcheado con `unittest.mock.patch('src.services.*.db_manager')` en todos los tests que tocan la base de datos.
-- Helpers estáticos puros (`_validate_member`, `_row_to_member`, `_member_to_row`, `_generate_member_code`, `hash_password`, `_verify_password`) testeados directamente sin mocks.
+- `db_manager` parcheado con `unittest.mock.patch('src.services.*.db_manager')`.
+- Helpers estáticos puros testeados directamente sin mocks.
 - Ejecutar con: `python -m pytest tests/ -v`
+
+---
+
+## Próximos Pasos — Módulo Attendance
+
+### Pendientes (en orden de implementación)
+1. **`src/views/attendance_view.py`** — QWidget: cargar .ui, señales, `populate_table()`, `set_user_info()`, `set_loading()`, `set_status()`, `get_search_term()`, `get_selected_attendance_id()`
+2. **`src/presenters/attendance_presenter.py`** — Presenter: check-in flow (search → confirm if multiple → check_in), check-out flow, filtro por fecha, permisos
+3. **Wiring en `main_application.py`** — `open_attendance_form()` + señal `form_attendance_requested` en `MainView` y `MainPresenter`
+4. **Íconos en `attendance_view.py`** — Asignar `IMG-Close.png` a `btn_close` (igual que en member_view)
+5. **`tests/test_attendance_presenter.py`** (opcional, según decisión de cobertura)

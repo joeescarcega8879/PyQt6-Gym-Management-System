@@ -22,14 +22,13 @@ class MemberPresenter:
     """
 
     def __init__(self, view, main_app, status_handler, current_user: Optional[User] = None):
-        """
+        """Initializes the MemberPresenter.
+
         Args:
-            view:         The member view instance. Must satisfy the view contract
-                          described at the bottom of this module.
-            main_app:     The main application instance.
-            status_handler: The status handler for displaying messages.
-            current_user: The logged-in User object, used for permission checks
-                          and audit fields (created_by / updated_by).
+            view: The view associated with this presenter.
+            main_app: The main application instance.
+            status_handler: A callable to handle status messages.
+            current_user: The currently logged-in user, if any.
         """
         self._is_editing = False
         self._current_member_id: Optional[str] = None

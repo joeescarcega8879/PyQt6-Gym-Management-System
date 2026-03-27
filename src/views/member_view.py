@@ -16,13 +16,13 @@ class MemberView(QWidget):
     clear_action_requested = pyqtSignal()
     no_selection_error = pyqtSignal()
 
-    def __init__(self):
+    def __init__(self) -> None:
         super(MemberView, self).__init__()
 
         # Initialize components
         self.initialize_components()
 
-    def initialize_components(self):
+    def initialize_components(self) -> None:
         # Load ui path
         ui_path = os.path.join(os.path.dirname(__file__), "ui", "member_view.ui")
         # Load ui
@@ -45,7 +45,6 @@ class MemberView(QWidget):
 
         self.date_birthday.setMinimumDate(QDate(1900, 1, 1))
         self.date_birthday.setMaximumDate(QDate.currentDate())
-
 
     def get_form_data(self) -> dict | None:
         return{

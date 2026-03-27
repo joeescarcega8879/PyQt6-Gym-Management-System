@@ -152,6 +152,7 @@ class AttendanceService:
             created_by=row.get("created_by"),
             member=member,
         )
+    
     @staticmethod
     def _row_to_member(row: dict) -> Member:
         return Member(

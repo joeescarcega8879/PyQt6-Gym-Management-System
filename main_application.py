@@ -11,10 +11,12 @@ from src.utils.status_type import StatusType
 from src.views.login_view import LoginView
 from src.views.main_view import MainView
 from src.views.member_view import MemberView
+from src.views.attendance_view import AttendanceView
 
 from src.presenters.login_presenter import LoginPresenter
 from src.presenters.main_presenter import MainPresenter
 from src.presenters.member_presenter import MemberPresenter
+from src.presenters.attendance_presenter import AttendancePresenter
 
 import src.assets.resources_rc  # noqa — loads embedded icons into memory
 
@@ -26,7 +28,7 @@ class MainApplication:
         self.load_stylesheet()
         self._init_login()
 
-    def setup_logging(self):
+    def setup_logging(self) -> None:
         """Configura el sistema de logging"""
         config.setup_directories()
         
@@ -39,7 +41,7 @@ class MainApplication:
             ]
         )
     
-    def load_stylesheet(self):
+    def load_stylesheet(self) -> None:
         """Carga y aplica el stylesheet CSS global"""
         try:
             css_path = os.path.join(
@@ -56,12 +58,12 @@ class MainApplication:
         except Exception as e:
             self.logger.error(f"Failed to load stylesheet: {e}")
         
-    def _init_login(self):
+    def _init_login(self) -> None:
         self.login_view = LoginView()
         self.login_presenter = LoginPresenter(self.login_view, on_login_success=self._initialize_main_window)
         self.login_view.show()
     
-    def _initialize_main_window(self, user):
+    def _initialize_main_window(self, user) -> None:
         self.current_user = user
         
         self.main_view = MainView()
@@ -70,7 +72,7 @@ class MainApplication:
         
         self.login_view.close()
 
-    def open_members_form(self):
+    def open_members_form(self) -> None:
         self.logger.info("Opening members form")
         
         self.member_view = MemberView()
@@ -80,7 +82,16 @@ class MainApplication:
         
         self.main_view.open_child_form(self.member_view, mdi_sub_window)
 
+    def open_attendance_form(self) -> None:
+        self.logger.info("Opening attendance form")
         
+        self.attendance_view = AttendanceView()
+        self.attendance_presenter = AttendancePresenter(self.attendance_view, self, self.status_bar_controller.show_message, self.current_user)
+        
+        mdi_sub_window = QMdiSubWindow()
+        
+        self.main_view.open_child_form(self.attendance_view, mdi_sub_window)
+
 def main():
     app = QApplication(sys.argv)
     
