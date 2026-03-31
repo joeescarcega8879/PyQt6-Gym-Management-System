@@ -29,10 +29,6 @@
    <property name="bottomMargin">
     <number>6</number>
    </property>
-
-   <!-- ═══════════════════════════════════════════════════════════════ -->
-   <!--  TOP BAR — user info + close button                            -->
-   <!-- ═══════════════════════════════════════════════════════════════ -->
    <item>
     <widget class="QFrame" name="bar_information">
      <property name="sizePolicy">
@@ -139,10 +135,6 @@
      </layout>
     </widget>
    </item>
-
-   <!-- ═══════════════════════════════════════════════════════════════ -->
-   <!--  CONTENT PANE — controls + table (vertical splitter)           -->
-   <!-- ═══════════════════════════════════════════════════════════════ -->
    <item>
     <widget class="QSplitter" name="splitter_main">
      <property name="sizePolicy">
@@ -157,10 +149,6 @@
      <property name="childrenCollapsible">
       <bool>false</bool>
      </property>
-
-     <!-- ─────────────────────────────────────────────────────────── -->
-     <!--  TOP PANE — check-in controls + date filter                 -->
-     <!-- ─────────────────────────────────────────────────────────── -->
      <widget class="QWidget" name="widget_top_pane">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -184,8 +172,6 @@
        <property name="bottomMargin">
         <number>2</number>
        </property>
-
-      
        <item>
         <widget class="QGroupBox" name="groupBox_checkin">
          <property name="sizePolicy">
@@ -238,7 +224,7 @@
              </font>
             </property>
             <property name="placeholderText">
-             <string>Code or name...</string>
+             <string>Member Code or name...</string>
             </property>
            </widget>
           </item>
@@ -283,8 +269,6 @@
          </layout>
         </widget>
        </item>
-
-      
        <item>
         <widget class="QGroupBox" name="groupBox_filter">
          <property name="sizePolicy">
@@ -324,17 +308,23 @@
           </item>
           <item>
            <widget class="QDateEdit" name="date_filter">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="font">
              <font>
               <family>Century Gothic</family>
               <pointsize>11</pointsize>
              </font>
             </property>
-            <property name="calendarPopup">
-             <bool>true</bool>
-            </property>
             <property name="displayFormat">
              <string>yyyy-MM-dd</string>
+            </property>
+            <property name="calendarPopup">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -388,20 +378,15 @@
              <string/>
             </property>
             <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignVCenter</set>
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
             </property>
            </widget>
           </item>
          </layout>
         </widget>
        </item>
-
       </layout>
      </widget>
-
-     <!-- ─────────────────────────────────────────────────────────── -->
-     <!--  BOTTOM PANE — attendance table                             -->
-     <!-- ─────────────────────────────────────────────────────────── -->
      <widget class="QTableWidget" name="attendance_table">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -416,10 +401,8 @@
        </size>
       </property>
      </widget>
-
     </widget>
    </item>
-
   </layout>
  </widget>
  <tabstops>

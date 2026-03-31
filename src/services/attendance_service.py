@@ -11,25 +11,29 @@ class AttendanceService:
 
     # Public methods
     def get_attendance_by_date(self, filter_date: date) -> ServiceResult[list[Attendance]]:
-        """Returns all attendance records for a given date, with member info."""
+        """Returns all attendance records for a given local date, with member info.
+        
+        Converts the local date boundaries to UTC before querying, so records
+        stored in UTC (e.g. 2026-03-31T00:59+00:00 = 2026-03-30T18:59 local)
+        are correctly matched to the user's local calendar day.
+        """
 
         try:
-            start = datetime.combine(filter_date, datetime.min.time()).isoformat()
-            end = datetime.combine(filter_date, datetime.max.time()).isoformat()
+            local_tz = datetime.now().astimezone().tzinfo
 
-            rows = db_manager.select(
+            start = datetime.combine(filter_date, datetime.min.time()).replace(tzinfo=local_tz).astimezone(timezone.utc).isoformat()
+            end   = datetime.combine(filter_date, datetime.max.time()).replace(tzinfo=local_tz).astimezone(timezone.utc).isoformat()
+
+            rows = db_manager.select_range(
                 table=_TABLE,
+                column="check_in_time",
+                start=start,
+                end=end,
                 columns="*, members(member_code, first_name, last_name)",
                 order_by="check_in_time",
             )
 
-            attendance_records = []
-            for row in rows:
-                ci = row.get('check_in_time', "")
-                if start <= ci <= end:
-                    attendance_records.append(self._row_to_attendance(row))
-            
-            return ServiceResult.ok(attendance_records)
+            return ServiceResult.ok([self._row_to_attendance(row) for row in rows])
         except Exception as e:
             return ServiceResult.fail(str(e))
 
@@ -88,6 +92,33 @@ class AttendanceService:
         except Exception as e:
             return ServiceResult.fail(str(e))
     
+    def find_open_checkin_for_member(self, member_id: str) -> ServiceResult[Attendance]:
+        """Returns the open attendance record for a member today, or not_found if none exists."""
+        try:
+            today    = date.today()
+            local_tz = datetime.now().astimezone().tzinfo
+            start    = datetime.combine(today, datetime.min.time()).replace(tzinfo=local_tz).astimezone(timezone.utc).isoformat()
+            end      = datetime.combine(today, datetime.max.time()).replace(tzinfo=local_tz).astimezone(timezone.utc).isoformat()
+
+            rows = db_manager.select_range(
+                table=_TABLE,
+                column="check_in_time",
+                start=start,
+                end=end,
+                columns="*, members(member_code, first_name, last_name)",
+                filters={"member_id": member_id},
+                order_by="check_in_time",
+            )
+
+            open_rows = [r for r in rows if r.get("check_out_time") is None]
+
+            if not open_rows:
+                return ServiceResult.not_found("This member has no open check-in today")
+
+            return ServiceResult.ok(self._row_to_attendance(open_rows[0]))
+        except Exception as e:
+            return ServiceResult.fail(str(e))
+
     def check_out(self, attendance_id: str) -> ServiceResult[Attendance]:
         """Sets check_out_time on an existing open attendance record."""
 
@@ -109,18 +140,21 @@ class AttendanceService:
     def _validate_no_open_checkin(self, member_id: str) -> Optional[str]:
         """Returns an error string if the member already has an open check-in today."""
 
-        today = date.today()
-        start = datetime.combine(today, datetime.min.time()).isoformat()
-        end = datetime.combine(today, datetime.max.time()).isoformat()
+        today    = date.today()
+        local_tz = datetime.now().astimezone().tzinfo
+        start    = datetime.combine(today, datetime.min.time()).replace(tzinfo=local_tz).astimezone(timezone.utc).isoformat()
+        end      = datetime.combine(today, datetime.max.time()).replace(tzinfo=local_tz).astimezone(timezone.utc).isoformat()
 
-        rows = db_manager.select(
+        rows = db_manager.select_range(
             table=_TABLE,
-            filters = {"member_id": member_id}
+            column="check_in_time",
+            start=start,
+            end=end,
+            filters={"member_id": member_id},
         )
 
         for row in rows:
-            ci = row.get('check_in_time', "")
-            if start <= ci <= end and row.get('check_out_time') is None:
+            if row.get('check_out_time') is None:
                 return "This member already has an open check-in today"
     
     @staticmethod

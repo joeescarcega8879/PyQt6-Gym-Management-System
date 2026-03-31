@@ -69,7 +69,7 @@ class MemberPresenter:
             logger.error(f"Load all members failed: {result.error}")
             self.view.show_error(result.error)
 
-    def _handle_search(self, term: str):
+    def _handle_search(self, term: str) -> None:
         """
         Searches for members matching the given term and updates the table.
         The search column is determined by the view's search option combobox.

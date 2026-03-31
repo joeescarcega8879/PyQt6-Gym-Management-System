@@ -56,8 +56,9 @@ class ErrorMessages:
     ATTENDANCE_NO_PERMISSION_CREATE = "You do not have permission to register attendance"
     ATTENDANCE_MEMBER_NOT_FOUND     = "No active member found with that code or name"
     ATTENDANCE_ALREADY_CHECKED_IN   = "This member already has an open check-in today"
-    ATTENDANCE_NO_OPEN_CHECKIN      = "This member has no open check-in to close"
-    ATTENDANCE_NO_SELECTION         = "Please select an attendance record"
+    ATTENDANCE_NO_OPEN_CHECKIN              = "This member has no open check-in to close"
+    ATTENDANCE_NO_OPEN_CHECKIN_FOR_MEMBER   = "This member has no open check-in today"
+    ATTENDANCE_NO_SELECTION                 = "Please select a record or enter a member code/name"
     ATTENDANCE_CHECKIN_SUCCESS      = "Check-in registered successfully"
     ATTENDANCE_CHECKOUT_SUCCESS     = "Check-out registered successfully"
     ATTENDANCE_CHECKIN_FAILED       = "Failed to register check-in"
@@ -65,6 +66,37 @@ class ErrorMessages:
     ATTENDANCE_SEARCH_EMPTY         = "Please enter a member code or name to search"
     ATTENDANCE_UNEXPECTED_ERROR     = "An unexpected error occurred. Please try again."
 
+
+    # Memberships module — Plans
+    PLANS_NO_PERMISSION_CREATE  = "You do not have permission to create plans"
+    PLANS_NO_PERMISSION_UPDATE  = "You do not have permission to update plans"
+    PLANS_NO_SELECTION          = "Please select a plan"
+    PLANS_NAME_REQUIRED         = "Plan name is required"
+    PLANS_INVALID_PRICE         = "Price must be zero or greater"
+    PLANS_INVALID_DURATION      = "Duration must be at least 1 day"
+    PLANS_CREATED               = "Plan created successfully"
+    PLANS_CREATION_FAILED       = "Failed to create plan. Please try again."
+    PLANS_UPDATED               = "Plan updated successfully"
+    PLANS_UPDATE_FAILED         = "Failed to update plan. Please try again."
+    PLANS_STATUS_UPDATED        = "Plan status updated successfully"
+    PLANS_STATUS_UPDATE_FAILED  = "Failed to update plan status. Please try again."
+    PLANS_UNEXPECTED_ERROR      = "An unexpected error occurred. Please try again."
+
+    # Memberships module — Member Memberships
+    MEMBERSHIPS_NO_PERMISSION_READ   = "You do not have permission to view memberships"
+    MEMBERSHIPS_NO_PERMISSION_CREATE = "You do not have permission to assign memberships"
+    MEMBERSHIPS_NO_PERMISSION_UPDATE = "You do not have permission to update memberships"
+    MEMBERSHIPS_NO_PERMISSION_DELETE = "You do not have permission to delete memberships"
+    MEMBERSHIPS_MEMBER_NOT_FOUND     = "No active member found with that code or name"
+    MEMBERSHIPS_PLAN_NOT_FOUND       = "The selected plan was not found"
+    MEMBERSHIPS_ALREADY_ACTIVE       = "This member already has an active membership"
+    MEMBERSHIPS_NO_SELECTION         = "Please select a membership from the table"
+    MEMBERSHIPS_INVALID_TRANSITION   = "This status change is not allowed"
+    MEMBERSHIPS_ASSIGNED             = "Membership assigned successfully"
+    MEMBERSHIPS_ASSIGN_FAILED        = "Failed to assign membership. Please try again."
+    MEMBERSHIPS_STATUS_UPDATED       = "Membership status updated successfully"
+    MEMBERSHIPS_STATUS_UPDATE_FAILED = "Failed to update membership status. Please try again."
+    MEMBERSHIPS_UNEXPECTED_ERROR     = "An unexpected error occurred. Please try again."
 
     @staticmethod
     def log_and_mask_error(error: Exception, context: str, user_message: Optional[str] = None) -> str:

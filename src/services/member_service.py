@@ -1,8 +1,3 @@
-"""
-Member service — business logic layer for gym members.
-All public methods return a ServiceResult to provide a consistent API
-for callers (presenters, views) without exposing raw exceptions.
-"""
 from __future__ import annotations
 
 import logging

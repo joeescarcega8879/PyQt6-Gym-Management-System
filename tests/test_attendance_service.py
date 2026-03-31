@@ -22,7 +22,7 @@ def make_attendance_row(**kwargs) -> dict:
     defaults = dict(
         id="att-001",
         member_id="mem-001",
-        check_in_time="2026-03-25T09:00:00",
+        check_in_time="2026-03-25T09:00:00+00:00",
         check_out_time=None,
         notes=None,
         created_by="user-001",
@@ -38,7 +38,7 @@ def make_attendance_row(**kwargs) -> dict:
 
 def make_closed_row(**kwargs) -> dict:
     """Factory for a completed attendance row (check-out already set)."""
-    return make_attendance_row(check_out_time="2026-03-25T11:00:00", **kwargs)
+    return make_attendance_row(check_out_time="2026-03-25T11:00:00+00:00", **kwargs)
 
 
 def make_member_row(**kwargs) -> dict:
@@ -148,21 +148,14 @@ class TestGetAttendanceByDate:
 
     @patch("src.services.attendance_service.db_manager")
     def test_returns_records_matching_the_date(self, mock_db):
-        mock_db.select.return_value = [make_attendance_row()]
+        mock_db.select_range.return_value = [make_attendance_row()]
         result = self.svc.get_attendance_by_date(date(2026, 3, 25))
         assert result.success is True
         assert len(result.data) == 1
 
     @patch("src.services.attendance_service.db_manager")
-    def test_excludes_records_from_other_dates(self, mock_db):
-        mock_db.select.return_value = [make_attendance_row()]
-        result = self.svc.get_attendance_by_date(date(2026, 3, 26))
-        assert result.success is True
-        assert len(result.data) == 0
-
-    @patch("src.services.attendance_service.db_manager")
     def test_returns_empty_list_when_no_records(self, mock_db):
-        mock_db.select.return_value = []
+        mock_db.select_range.return_value = []
         result = self.svc.get_attendance_by_date(date(2026, 3, 25))
         assert result.success is True
         assert result.data == []
@@ -170,25 +163,34 @@ class TestGetAttendanceByDate:
     @patch("src.services.attendance_service.db_manager")
     def test_returns_multiple_records_for_same_day(self, mock_db):
         row2 = make_attendance_row(id="att-002", member_id="mem-002")
-        mock_db.select.return_value = [make_attendance_row(), row2]
+        mock_db.select_range.return_value = [make_attendance_row(), row2]
         result = self.svc.get_attendance_by_date(date(2026, 3, 25))
         assert result.success is True
         assert len(result.data) == 2
 
     @patch("src.services.attendance_service.db_manager")
     def test_db_exception_returns_failure(self, mock_db):
-        mock_db.select.side_effect = Exception("connection lost")
+        mock_db.select_range.side_effect = Exception("connection lost")
         result = self.svc.get_attendance_by_date(date(2026, 3, 25))
         assert result.success is False
         assert result.error is not None
 
     @patch("src.services.attendance_service.db_manager")
     def test_queries_attendance_table_with_member_join(self, mock_db):
-        mock_db.select.return_value = []
+        mock_db.select_range.return_value = []
         self.svc.get_attendance_by_date(date(2026, 3, 25))
-        call_kwargs = mock_db.select.call_args.kwargs
+        call_kwargs = mock_db.select_range.call_args.kwargs
         assert call_kwargs["table"] == "attendance"
         assert "members" in call_kwargs["columns"]
+
+    @patch("src.services.attendance_service.db_manager")
+    def test_filters_by_check_in_time_column(self, mock_db):
+        mock_db.select_range.return_value = []
+        self.svc.get_attendance_by_date(date(2026, 3, 25))
+        call_kwargs = mock_db.select_range.call_args.kwargs
+        assert call_kwargs["column"] == "check_in_time"
+        assert "+00:00" in call_kwargs["start"]
+        assert "+00:00" in call_kwargs["end"]
 
 
 # ---------------------------------------------------------------------------
@@ -253,7 +255,7 @@ class TestCheckIn:
 
     @patch("src.services.attendance_service.db_manager")
     def test_successful_checkin_returns_attendance(self, mock_db):
-        mock_db.select.return_value = []          # no open check-ins today
+        mock_db.select_range.return_value = []          # no open check-ins today
         mock_db.insert.return_value = make_attendance_row()
         result = self.svc.check_in("mem-001", "user-001")
         assert result.success is True
@@ -261,14 +263,14 @@ class TestCheckIn:
 
     @patch("src.services.attendance_service.db_manager")
     def test_checkin_calls_insert_with_correct_table(self, mock_db):
-        mock_db.select.return_value = []
+        mock_db.select_range.return_value = []
         mock_db.insert.return_value = make_attendance_row()
         self.svc.check_in("mem-001")
         assert mock_db.insert.call_args.args[0] == "attendance"
 
     @patch("src.services.attendance_service.db_manager")
     def test_checkin_payload_contains_member_id_and_check_in_time(self, mock_db):
-        mock_db.select.return_value = []
+        mock_db.select_range.return_value = []
         mock_db.insert.return_value = make_attendance_row()
         self.svc.check_in("mem-001", "user-001")
         payload = mock_db.insert.call_args.args[1]
@@ -278,12 +280,12 @@ class TestCheckIn:
 
     @patch("src.services.attendance_service.db_manager")
     def test_blocks_duplicate_open_checkin_today(self, mock_db):
-        # Simulate an open check-in for today
+        # Simulate an open check-in for today (UTC-aware timestamp)
         today_row = make_attendance_row(
-            check_in_time=datetime.combine(date.today(), datetime.min.time().replace(hour=9)).isoformat(),
+            check_in_time=datetime.now(timezone.utc).replace(hour=9, minute=0, second=0).isoformat(),
             check_out_time=None,
         )
-        mock_db.select.return_value = [today_row]
+        mock_db.select_range.return_value = [today_row]
         result = self.svc.check_in("mem-001")
         assert result.success is False
         mock_db.insert.assert_not_called()
@@ -292,17 +294,17 @@ class TestCheckIn:
     def test_allows_checkin_if_previous_was_checked_out(self, mock_db):
         # Closed check-in from today → new check-in is allowed
         closed_today = make_attendance_row(
-            check_in_time=datetime.combine(date.today(), datetime.min.time().replace(hour=9)).isoformat(),
-            check_out_time=datetime.combine(date.today(), datetime.min.time().replace(hour=11)).isoformat(),
+            check_in_time=datetime.now(timezone.utc).replace(hour=9, minute=0, second=0).isoformat(),
+            check_out_time=datetime.now(timezone.utc).replace(hour=11, minute=0, second=0).isoformat(),
         )
-        mock_db.select.return_value = [closed_today]
+        mock_db.select_range.return_value = [closed_today]
         mock_db.insert.return_value = make_attendance_row()
         result = self.svc.check_in("mem-001")
         assert result.success is True
 
     @patch("src.services.attendance_service.db_manager")
     def test_created_by_is_none_when_not_provided(self, mock_db):
-        mock_db.select.return_value = []
+        mock_db.select_range.return_value = []
         mock_db.insert.return_value = make_attendance_row(created_by=None)
         self.svc.check_in("mem-001")
         payload = mock_db.insert.call_args.args[1]
@@ -310,14 +312,14 @@ class TestCheckIn:
 
     @patch("src.services.attendance_service.db_manager")
     def test_db_insert_exception_returns_failure(self, mock_db):
-        mock_db.select.return_value = []
+        mock_db.select_range.return_value = []
         mock_db.insert.side_effect = Exception("insert failed")
         result = self.svc.check_in("mem-001")
         assert result.success is False
 
     @patch("src.services.attendance_service.db_manager")
     def test_db_select_exception_during_validation_returns_failure(self, mock_db):
-        mock_db.select.side_effect = Exception("select failed")
+        mock_db.select_range.side_effect = Exception("select failed")
         result = self.svc.check_in("mem-001")
         assert result.success is False
 
@@ -368,3 +370,65 @@ class TestCheckOut:
         mock_db.update.side_effect = Exception("update failed")
         result = self.svc.check_out("att-001")
         assert result.success is False
+
+
+# ---------------------------------------------------------------------------
+# find_open_checkin_for_member
+# ---------------------------------------------------------------------------
+
+class TestFindOpenCheckinForMember:
+    def setup_method(self):
+        self.svc = AttendanceService()
+
+    @patch("src.services.attendance_service.db_manager")
+    def test_returns_open_record_when_found(self, mock_db):
+        mock_db.select_range.return_value = [make_attendance_row()]  # check_out_time=None
+        result = self.svc.find_open_checkin_for_member("mem-001")
+        assert result.success is True
+        assert result.data.id == "att-001"
+        assert result.data.check_out_time is None
+
+    @patch("src.services.attendance_service.db_manager")
+    def test_returns_not_found_when_no_records_today(self, mock_db):
+        mock_db.select_range.return_value = []
+        result = self.svc.find_open_checkin_for_member("mem-001")
+        assert result.success is False
+        assert result.is_not_found is True
+
+    @patch("src.services.attendance_service.db_manager")
+    def test_returns_not_found_when_all_records_are_closed(self, mock_db):
+        mock_db.select_range.return_value = [make_closed_row()]
+        result = self.svc.find_open_checkin_for_member("mem-001")
+        assert result.success is False
+        assert result.is_not_found is True
+
+    @patch("src.services.attendance_service.db_manager")
+    def test_filters_by_member_id(self, mock_db):
+        mock_db.select_range.return_value = []
+        self.svc.find_open_checkin_for_member("mem-001")
+        call_kwargs = mock_db.select_range.call_args.kwargs
+        assert call_kwargs["filters"] == {"member_id": "mem-001"}
+
+    @patch("src.services.attendance_service.db_manager")
+    def test_ignores_closed_records_and_returns_open_one(self, mock_db):
+        open_row   = make_attendance_row(id="att-002", check_out_time=None)
+        closed_row = make_closed_row(id="att-001")
+        mock_db.select_range.return_value = [closed_row, open_row]
+        result = self.svc.find_open_checkin_for_member("mem-001")
+        assert result.success is True
+        assert result.data.id == "att-002"
+
+    @patch("src.services.attendance_service.db_manager")
+    def test_queries_with_utc_aware_timestamps(self, mock_db):
+        mock_db.select_range.return_value = []
+        self.svc.find_open_checkin_for_member("mem-001")
+        call_kwargs = mock_db.select_range.call_args.kwargs
+        assert "+00:00" in call_kwargs["start"]
+        assert "+00:00" in call_kwargs["end"]
+
+    @patch("src.services.attendance_service.db_manager")
+    def test_db_exception_returns_failure(self, mock_db):
+        mock_db.select_range.side_effect = Exception("db error")
+        result = self.svc.find_open_checkin_for_member("mem-001")
+        assert result.success is False
+        assert result.is_not_found is False

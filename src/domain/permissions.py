@@ -13,4 +13,14 @@ PERMISSIONS = {
     Permissions.ATTENDANCE_READ: {UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.INSTRUCTOR},
     Permissions.ATTENDANCE_CREATE: {UserRole.RECEPTIONIST, UserRole.ADMIN},
 
+    # Permissions related to membership plans
+    Permissions.PLANS_CREATE: {UserRole.ADMIN},
+    Permissions.PLANS_UPDATE: {UserRole.ADMIN},
+
+    # Permissions related to member memberships
+    Permissions.MEMBERSHIPS_READ: {UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.ACCOUNTANT},
+    Permissions.MEMBERSHIPS_CREATE: {UserRole.ADMIN, UserRole.RECEPTIONIST},
+    Permissions.MEMBERSHIPS_UPDATE: {UserRole.ADMIN, UserRole.RECEPTIONIST},
+    Permissions.MEMBERSHIPS_DELETE: {UserRole.ADMIN},
+
 }

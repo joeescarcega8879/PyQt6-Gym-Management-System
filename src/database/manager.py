@@ -218,6 +218,47 @@ class DatabaseManager:
             logger.error(f"RPC error calling {function_name}: {str(e)}")
             raise
 
+    def select_range(self, table: str, column: str, start: str, end: str,
+                     columns: str = "*",
+                     filters: Optional[Dict[str, Any]] = None,
+                     order_by: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Executes a SELECT query filtering a column between two values (inclusive).
+
+        Args:
+            table: Target table name.
+            column: Column to apply the range filter on.
+            start: Lower bound value (inclusive), as an ISO string.
+            end: Upper bound value (inclusive), as an ISO string.
+            columns: Columns to retrieve (default is all).
+            filters: Optional additional equality filters {column: value}.
+            order_by: Column name to sort by.
+
+        Returns:
+            List[Dict]: List of matching records.
+        """
+        try:
+            query = (
+                self.client.table(table)
+                .select(columns)
+                .gte(column, start)
+                .lte(column, end)
+            )
+
+            if filters:
+                for col, value in filters.items():
+                    query = query.eq(col, value)
+
+            if order_by:
+                query = query.order(order_by)
+
+            response = query.execute()
+            return response.data
+
+        except Exception as e:
+            logger.error(f"SELECT range error on {table}: {str(e)}")
+            raise
+
     # ============================================
     # ADVANCED SEARCH OPERATIONS
     # ============================================
