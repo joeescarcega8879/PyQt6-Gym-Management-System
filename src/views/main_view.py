@@ -35,10 +35,13 @@ class MainView(QMainWindow):
         icon_size = QSize(24, 24)
         self.btn_dashboard.setIcon(get_icon(":/icons/IMG-Dashboard.png"))
         self.btn_dashboard.setIconSize(icon_size)
+        
         self.btn_members.setIcon(get_icon(":/icons/IMG-Members.png"))
         self.btn_members.setIconSize(icon_size)
+        
         self.btn_attendance.setIcon(get_icon(":/icons/IMG-Attendance.png"))
         self.btn_attendance.setIconSize(icon_size)
+        
         self.btn_payments.setIcon(get_icon(":/icons/IMG-Payments.png"))
         self.btn_payments.setIconSize(icon_size)
         self.btn_memberships.setIcon(get_icon(":/icons/IMG-Memberships.png"))

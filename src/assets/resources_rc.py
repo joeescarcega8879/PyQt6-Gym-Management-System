@@ -125,7 +125,7 @@ _resources[":/icons/IMG-Members.png"] = (
     "W6urTzYQZcbLAziA8o+SWrP6JSj3AlczRiUwyRWd/hf/VFvf9+FgWAAAAABJRU5ErkJggg=="
 )
 
-_resources[":/icons/IMG-Attendence.png"] = (
+_resources[":/icons/IMG-Attendance.png"] = (
     "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAAAHYAAAB2AH6XKZyAAAAGXRF"
     "WHRTb2Z0d2FyZQB3d3cuaW5rc2NhcGUub3Jnm+48GgAADohJREFUeJztm2l0lGWWx3/3rUolZGFJwhpZ"
     "pgVEkYRUBRE5jnFsmyWpAuyuEZJCaVHGtkft0dFx2tHJUejTbuPYnhlH1B5ak+Dp2CopwHZa2oyOG1AV"
@@ -192,7 +192,7 @@ _resources[":/icons/IMG-Attendence.png"] = (
     "iGg2iRSBXk70lTiL6HX6aZCjwAFgi6r9Yu36tXF/e9Tf+H/oiuNXkMEO5AAAAABJRU5ErkJggg=="
 )
 
-_resources[":/icons/IMG-Pyments.png"] = (
+_resources[":/icons/IMG-Payments.png"] = (
     "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAB"
     "YgAAAWIBXyfQUwAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAkqSURBVHic5Zld"
     "bBzVFcd/987M7s7ser3+gDgxNiZOjPJBnBACBGhEk0AJvMATD1WlPgOtQvtQHpEqVaCqgKqSPralEg9V"
