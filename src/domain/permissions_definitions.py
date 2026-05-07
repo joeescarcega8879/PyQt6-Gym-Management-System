@@ -23,3 +23,8 @@ class Permissions:
     MEMBERSHIPS_CREATE = "memberships.create"
     MEMBERSHIPS_UPDATE = "memberships.update"
     MEMBERSHIPS_DELETE = "memberships.delete"
+
+    # Permissions related to payments
+    PAYMENTS_CREATE = "payments.create"
+    PAYMENTS_READ   = "payments.read"
+    PAYMENTS_UPDATE = "payments.update"

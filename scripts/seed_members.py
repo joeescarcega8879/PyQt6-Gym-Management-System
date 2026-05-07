@@ -1,5 +1,5 @@
 """
-Seed script — inserts 50 realistic gym members into Supabase.
+Seed script — inserts 50 realistic gym members into the database.
 
 Run from the project root:
     python scripts/seed_members.py

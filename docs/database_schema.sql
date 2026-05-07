@@ -331,7 +331,7 @@ CREATE TRIGGER update_equipment_updated_at BEFORE UPDATE ON equipment
 -- Usuario administrador por defecto (contraseña: admin123)
 -- NOTA: Cambiar la contraseña en producción
 INSERT INTO users (username, email, password_hash, full_name, role) VALUES
-('admin', 'admin@gym.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYqKm5Pg7aG', 'Administrador del Sistema', 'admin');
+('admin', 'admin@gym.com', '$2b$12$Sw3VObXQHg1JiU/X9ipezOwNUhgY1SCPxCt2U5CwoOJiu4S75gPbi', 'Administrador del Sistema', 'admin');
 
 -- Planes de membresía de ejemplo
 INSERT INTO membership_plans (name, description, duration_days, price, has_class_access) VALUES

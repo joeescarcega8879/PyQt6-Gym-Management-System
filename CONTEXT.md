@@ -34,13 +34,14 @@ src/
 
 ## Módulos Implementados
 
-| Módulo      | Estado          | Notas                                                                               |
-|-------------|-----------------|-------------------------------------------------------------------------------------|
-| Login       | Completo        | bcrypt, roles, sesión. Login en QThread (no bloquea UI)                             |
-| Members     | Completo        | CRUD funcional, tests, código limpio                                                |
-| Attendance  | Completo        | CRUD completo, check-in/out por búsqueda o selección, MemberSelectDialog, 46 tests |
-| Memberships | En progreso     | Fase 1 y 2 completas. Faltan: tests, .ui, view, presenter, navegación               |
-| Otros       | No iniciados    | Sidebar conectado solo a Members y Attendance                                       |
+| Módulo      | Estado       | Notas                                                                                      |
+|-------------|--------------|--------------------------------------------------------------------------------------------|
+| Login       | Completo     | bcrypt, roles, sesión. Login en QThread (no bloquea UI)                                    |
+| Members     | Completo     | CRUD funcional, tests, código limpio                                                       |
+| Attendance  | Completo     | CRUD completo, check-in/out por búsqueda o selección, MemberSelectDialog, 46 tests         |
+| Payments    | Completo     | Registro de cobros, filtros por status/método/fecha/búsqueda, 43 tests                     |
+| Memberships | Completo     | Planes + membresías asignadas, CRUD, transiciones de estado, 94 tests                      |
+| Otros       | No iniciados | Sidebar conectado a Members, Attendance, Payments y Memberships                            |
 
 ---
 
@@ -57,27 +58,17 @@ src/
 
 ---
 
-## Módulo Attendance — Estado Actual
+## Módulo Attendance — Archivos Clave
 
-### Archivos implementados ✅
-
-| Archivo | Estado | Notas |
-|---|---|---|
-| `src/models/models.py` — `Attendance` | Completo | Dataclass con member_id, check_in/out_time, notes, member |
-| `src/services/attendance_service.py` | Completo | 5 métodos: get_by_date, search_member, check_in, check_out, find_open_checkin_for_member |
-| `src/views/ui/attendance_view.ui` | Completo | Layout Qt Designer |
-| `src/views/attendance_view.py` | Completo | Señales, populate_table (hora local 12h, Duration, UserRole), get_search_term, get_selected_attendance_id, get_current_date |
-| `src/views/widgets/member_select_dialog.py` | Completo | QDialog reutilizable para seleccionar miembro de lista múltiple |
-| `src/presenters/attendance_presenter.py` | Completo | check-in, check-out (por búsqueda o selección), filtro por fecha, btn_today, permisos, user info |
-| `main_application.py` | Completo | `open_attendance_form()` implementado |
-| `main_view.py` | Completo | Señal `form_attendance_requested` conectada |
-| `main_presenter.py` | Completo | Señal conectada a `open_attendance_form` |
-| `src/database/manager.py` | Completo | Nuevo método `select_range()` (gte/lte en Supabase) |
-| `tests/test_attendance_service.py` | Completo | 46 tests, 100% passing |
-
-### Deuda técnica pendiente ⚠️
-
-Ninguna. Módulo finalizado.
+| Archivo | Notas |
+|---|---|
+| `src/models/models.py` — `Attendance` | Dataclass con member_id, check_in/out_time, notes, member |
+| `src/services/attendance_service.py` | 5 métodos: get_by_date, search_member, check_in, check_out, find_open_checkin_for_member |
+| `src/views/ui/attendance_view.ui` | Layout Qt Designer |
+| `src/views/attendance_view.py` | Señales, populate_table (hora local 12h, Duration, UserRole) |
+| `src/views/widgets/member_select_dialog.py` | QDialog reutilizable para seleccionar miembro de lista múltiple |
+| `src/presenters/attendance_presenter.py` | check-in/out por búsqueda o selección, filtro por fecha, btn_today |
+| `tests/test_attendance_service.py` | 46 tests, 100% passing |
 
 ### Columnas de `attendance_table`
 
@@ -92,98 +83,109 @@ Ninguna. Módulo finalizado.
 
 ---
 
-## Módulo Memberships — Estado Actual
+## Módulo Payments — Archivos Clave
 
-### Fases completadas ✅
+| Archivo | Notas |
+|---|---|
+| `src/models/models.py` — `Payment` | Dataclass con member_id, amount, payment_method, payment_date, status, reference_number |
+| `src/models/enums.py` — `PaymentMethod`, `PaymentStatus` | cash / card / transfer / other · completed / pending / cancelled / refunded |
+| `src/services/payment_service.py` | get_payments, get_payments_by_member, create_payment, update_payment |
+| `src/views/ui/payment_view.ui` | Layout Qt Designer (1060×700) |
+| `src/views/payment_view.py` | Señales, populate_table, filtros por status/método/fecha/búsqueda |
+| `src/presenters/payment_presenter.py` | Búsqueda de miembro + MemberSelectDialog, permisos, filtros |
+| `tests/test_payment_service.py` | 43 tests, 100% passing |
 
-#### Fase 1 — Permisos y mensajes de error ✅
+### Permisos de Payments
 
-**`src/domain/permissions_definitions.py`**
-- `PLANS_CREATE = "plans.create"`
-- `PLANS_UPDATE = "plans.update"`
-- `MEMBERSHIPS_READ = "memberships.read"`
-- `MEMBERSHIPS_CREATE = "memberships.create"`
-- `MEMBERSHIPS_UPDATE = "memberships.update"`
-- `MEMBERSHIPS_DELETE = "memberships.delete"`
+| Permiso | Roles |
+|---|---|
+| `PAYMENTS_READ` | ADMIN, RECEPTIONIST, ACCOUNTANT |
+| `PAYMENTS_CREATE` | ADMIN, RECEPTIONIST |
+| `PAYMENTS_UPDATE` | ADMIN |
 
-**`src/domain/permissions.py`**
-- `PLANS_CREATE` → `{ADMIN}`
-- `PLANS_UPDATE` → `{ADMIN}`
-- `MEMBERSHIPS_READ` → `{ADMIN, RECEPTIONIST, ACCOUNTANT}`
-- `MEMBERSHIPS_CREATE` → `{ADMIN, RECEPTIONIST}`
-- `MEMBERSHIPS_UPDATE` → `{ADMIN, RECEPTIONIST}`
-- `MEMBERSHIPS_DELETE` → `{ADMIN}`
+### Columnas de `payments_table`
 
-**`src/utils/error_messages.py`**
-- 13 constantes en sección `# Memberships module — Plans`
-- 14 constantes en sección `# Memberships module — Member Memberships`
+| # | Header | Fuente |
+|---|---|---|
+| 0 | Code | `payment.member.member_code` + UUID en `UserRole` |
+| 1 | Member Name | `payment.member.full_name` |
+| 2 | Amount | `f"${payment.amount:.2f}"` |
+| 3 | Method | `payment.payment_method.value.capitalize()` |
+| 4 | Date | `payment_date.strftime("%Y-%m-%d %I:%M %p")` |
+| 5 | Status | `payment.status.value.capitalize()` |
+| 6 | Notes | `payment.notes or ""` |
 
-#### Fase 2 — Service ✅
+---
 
-**`src/services/membership_service.py`** — archivo nuevo (373 líneas)
+## Módulo Memberships — Archivos Implementados ✅
 
-Tablas: `_PLANS_TABLE = 'membership_plans'`, `_MEMBERSHIPS_TABLE = 'member_memberships'`
+| Archivo | Notas |
+|---|---|
+| `src/domain/permissions_definitions.py` | PLANS_CREATE, PLANS_UPDATE, MEMBERSHIPS_READ/CREATE/UPDATE/DELETE |
+| `src/domain/permissions.py` | PLANS_* → ADMIN; MEMBERSHIPS_READ → ADMIN/RECEPTIONIST/ACCOUNTANT; MEMBERSHIPS_CREATE/UPDATE → ADMIN/RECEPTIONIST |
+| `src/utils/error_messages.py` | 13 constantes Plans + 14 constantes Memberships |
+| `src/services/membership_service.py` | 9 métodos públicos, 5 helpers privados |
+| `src/views/ui/membership_view.ui` | QTabWidget 2 tabs, 1200×750 |
+| `src/views/membership_view.py` | 10 señales, getters/setters para ambas tabs |
+| `src/presenters/membership_presenter.py` | Plans CRUD + toggle_status + Memberships assign/suspend/cancel/reactivate |
+| `tests/test_membership_service.py` | 94 tests, 100% passing |
+
+### Service — Métodos públicos
 
 | Método | Descripción |
 |---|---|
 | `get_all_plans(include_inactive)` | SELECT con filtro opcional `is_active`, ordenado por `name` |
 | `get_plan_by_id(plan_id)` | SELECT por `id`, retorna `not_found` si no existe |
 | `create_plan(plan)` | Valida → inserta → retorna plan creado |
-| `update_plan(plan)` | Valida id + campos → verifica existencia → actualiza |
+| `update_plan(plan)` | Valida id + campos → verifica existencia → actualiza (`updated_at` incluido) |
 | `toggle_plan_status(plan_id, is_active)` | UPDATE solo campo `is_active` |
-| `get_memberships(status, search_term, date_from, date_to, expiring_days)` | 3 ramas de query según filtros; búsqueda por miembro en Python |
+| `get_memberships(status, search_term, date_from, date_to, expiring_days)` | 3 ramas de query; búsqueda por miembro en Python |
 | `get_memberships_by_member(member_id)` | SELECT con JOIN, ordenado por `start_date` |
 | `assign_membership(member_id, plan_id, start_date, notes, created_by)` | Valida activa existente → calcula `end_date` → inserta |
 | `change_status(membership_id, new_status)` | Verifica existencia → valida transición → actualiza |
 
-Helpers privados: `_validate_plan`, `_plan_to_row`, `_row_to_plan`, `_row_to_membership`, `_validate_status_transition`
+### Transiciones de status permitidas
 
-**Transiciones de status permitidas:**
 - `ACTIVE` → `SUSPENDED`, `CANCELLED`
 - `SUSPENDED` → `ACTIVE`, `CANCELLED`
 - `EXPIRED` → `ACTIVE` (renovación manual)
 - `CANCELLED` → ninguna
 
-**JOIN columns usadas en queries de membresías:**
-```
-"*, members(member_code, first_name, last_name), membership_plans(name, duration_days, price)"
-```
+### Notas de implementación
 
-**Notas de implementación:**
-- `end_date` se calcula como `start_date + timedelta(days=plan.duration_days)` en `assign_membership`
-- `end_date` / `start_date` son tipo `date` en Supabase → `select_range` recibe `date.isoformat()` (sin timezone)
+- `end_date = start_date + timedelta(days=plan.duration_days)` calculado en `assign_membership`
+- `start_date` / `end_date` son tipo `date` → `select_range` recibe `date.isoformat()` (sin timezone)
 - `search_term` en `get_memberships` filtra en Python sobre `member.full_name` y `member.member_code`
 - `_plan_to_row` no incluye `id` (lo genera Supabase en insert; en update va en `filters`)
+- `expiring_days` tiene prioridad sobre `date_from`/`date_to` en el presenter
 
-### Fases pendientes ⏳
+### View — Señales
 
-| Fase | Descripción | Estado |
+| Señal | Tab | Origen |
 |---|---|---|
-| Fase 3 | Tests — `tests/test_membership_service.py` | Pendiente |
-| Fase 4 | UI file — `src/views/ui/membership_view.ui` | Pendiente |
-| Fase 5 | View — `src/views/membership_view.py` | Pendiente |
-| Fase 6 | Presenter — `src/presenters/membership_presenter.py` | Pendiente |
-| Fase 7 | Navegación — 5 touch points (main_view, main_presenter, main_application) | Pendiente |
-| Fase 8 | Actualizar CONTEXT.md como módulo completo | Pendiente |
+| `save_plan_requested` | Plans | `btn_save_plan` |
+| `new_plan_requested` | Plans | `btn_new_plan` |
+| `cancel_plan_requested` | Plans | `btn_cancel_plan` |
+| `toggle_status_requested` | Plans | `btn_toggle_status` |
+| `plan_selected` | Plans | `plans_table.itemSelectionChanged` |
+| `filter_requested` | Memberships | `btn_filter` + `btn_clear_filters` |
+| `assign_requested` | Memberships | `btn_assign` |
+| `suspend_requested` | Memberships | `btn_suspend` |
+| `cancel_membership_requested` | Memberships | `btn_cancel_membership` |
+| `reactivate_requested` | Memberships | `btn_reactivate` |
 
-### Diseño de UI planeado
+### Presenter — Decisiones de diseño
 
-**QTabWidget con 2 tabs:**
+- `_selected_plan_id: Optional[str]` distingue modo create (None) vs update (UUID)
+- `_handle_save_plan` delega a `_create_plan()` o `_update_plan()` según el estado
+- `_change_membership_status(new_status)` es compartido por suspend / cancel / reactivate
+- `_handle_load_plans()` popula tabla (activos + inactivos) y combo_plan (solo activos)
+- `combo_plan` usa `addItem(name, plan.id)` → `currentData()` retorna UUID directamente
+- `get_max_classes()` retorna `None` cuando `spin_max_classes == 0` (Unlimited)
+- `get_expiring_days()` parsea número del texto del combo ("7 days" → 7)
 
-**Tab 1 — Plans:**
-- Tabla izquierda: `plans_table` (Name, Duration, Price, Class Access, Max Classes/Week, Status)
-- Form derecho: `input_plan_name`, `input_description`, `spin_duration_days`, `spin_price`, `check_has_class_access`, `spin_max_classes`, `check_is_active`
-- Botones: `btn_new_plan`, `btn_save_plan`, `btn_cancel_plan`, `btn_toggle_status`
+### Columnas de `plans_table`
 
-**Tab 2 — Memberships:**
-- Fila de filtros: `input_search_member`, `combo_status`, `date_from`, `date_to`, `combo_expiring`, `btn_filter`, `btn_clear_filters`
-- Tabla: `memberships_table` (Member Code, Member Name, Plan, Start Date, End Date, Status, Days Left)
-- Sección asignación: `input_assign_search`, `combo_plan`, `date_start`, `input_notes`, `btn_assign`
-- Botones de status: `btn_suspend`, `btn_cancel_membership`, `btn_reactivate`
-
-**Columnas de tablas:**
-
-Tab Plans:
 | # | Header | Fuente |
 |---|---|---|
 | 0 | Name | `plan.name` + UUID en `UserRole` |
@@ -193,7 +195,8 @@ Tab Plans:
 | 4 | Max Classes/Week | `str(plan.max_classes_per_week)` o `"Unlimited"` |
 | 5 | Status | `"Active"` / `"Inactive"` |
 
-Tab Memberships:
+### Columnas de `memberships_table`
+
 | # | Header | Fuente |
 |---|---|---|
 | 0 | Member Code | `membership.member.member_code` + UUID en `UserRole` |
@@ -201,21 +204,30 @@ Tab Memberships:
 | 2 | Plan | `membership.plan.name` |
 | 3 | Start Date | `membership.start_date.strftime("%Y-%m-%d")` |
 | 4 | End Date | `membership.end_date.strftime("%Y-%m-%d")` |
-| 5 | Status | `membership.status.value` |
+| 5 | Status | `membership.status.value.capitalize()` |
 | 6 | Days Left | `(end_date - today).days` o `"Expired"` si negativo |
 
-### Tests planeados (`test_membership_service.py`)
+---
 
-| Clase | Casos |
-|---|---|
-| `TestGetAllPlans` | retorna activos, incluye inactivos con flag, lista vacía, error de DB |
-| `TestGetPlanById` | encontrado, not_found, error de DB |
-| `TestCreatePlan` | éxito, nombre vacío, precio negativo, duración < 1 |
-| `TestUpdatePlan` | éxito, plan no existe, id requerido |
-| `TestTogglePlanStatus` | activa, desactiva |
-| `TestAssignMembership` | éxito con `end_date` correcto, ya tiene activa, plan no existe, error de DB |
-| `TestChangeStatus` | transiciones válidas, transiciones inválidas rechazadas, not_found |
-| `TestGetMemberships` | sin filtros, por status, por search_term, por rango de fechas, expiring_days |
+## Tests — Estado Actual
+
+**Total: 316 tests, 100% passing.**
+
+| Archivo de test                  | Módulo cubierto                     | Tests |
+|----------------------------------|-------------------------------------|-------|
+| `test_service_result.py`         | `services/result.py`                | 16    |
+| `test_member_service.py`         | `services/member_service.py`        | 62    |
+| `test_permissions.py`            | `domain/permissions*.py`            | 21    |
+| `test_auth_service.py`           | `services/auth_service.py`          | 31    |
+| `test_attendance_service.py`     | `services/attendance_service.py`    | 46    |
+| `test_payment_service.py`        | `services/payment_service.py`       | 43    |
+| `test_membership_service.py`     | `services/membership_service.py`    | 94    |
+| `conftest.py`                    | Fixtures compartidas                | —     |
+
+**Estrategia de mocking:**
+- `db_manager` parcheado con `unittest.mock.patch('src.services.*.db_manager')`.
+- Helpers estáticos puros testeados directamente sin mocks.
+- Ejecutar con: `python -m pytest tests/ -v`
 
 ---
 
@@ -353,46 +365,11 @@ el event loop de Qt, que interpretaba la espera como `KeyboardInterrupt`.
 
 ---
 
-## Tests — Estado Actual
-
-**Total: 179 tests, 100% passing.**
-*(`test_membership_service.py` pendiente — se agregará en Fase 3)*
-
-| Archivo de test               | Módulo cubierto                  | Tests |
-|-------------------------------|----------------------------------|-------|
-| `test_service_result.py`      | `services/result.py`             | 16    |
-| `test_member_service.py`      | `services/member_service.py`     | 62    |
-| `test_permissions.py`         | `domain/permissions*.py`         | 21    |
-| `test_auth_service.py`        | `services/auth_service.py`       | 31    |
-| `test_attendance_service.py`  | `services/attendance_service.py` | 46    |
-| `conftest.py`                 | Fixtures compartidas             | —     |
-
-**Estrategia de mocking:**
-- `db_manager` parcheado con `unittest.mock.patch('src.services.*.db_manager')`.
-- Helpers estáticos puros testeados directamente sin mocks.
-- Ejecutar con: `python -m pytest tests/ -v`
-
----
-
 ## Próximos Pasos
-
-### Módulo Memberships — Fases pendientes
-
-| Fase | Tarea | Archivo |
-|---|---|---|
-| Fase 3 | Tests del service | `tests/test_membership_service.py` (nuevo) |
-| Fase 4 | UI file (.ui) | `src/views/ui/membership_view.ui` (nuevo) |
-| Fase 5 | View Python | `src/views/membership_view.py` (nuevo) |
-| Fase 6 | Presenter | `src/presenters/membership_presenter.py` (nuevo) |
-| Fase 7 | Navegación | `main_view.py`, `main_presenter.py`, `main_application.py` (modificar) |
-| Fase 8 | Documentación | `CONTEXT.md` (actualizar) |
-
-### Módulos siguientes (después de Memberships)
 
 | Módulo | Botón en sidebar | Prioridad |
 |---|---|---|
-| Dashboard | `btn_dashboard` | Alta — requiere datos de Memberships para ser útil |
-| Payments | `btn_payments` | Alta — registro de cobros |
+| Dashboard | `btn_dashboard` | Alta — requiere datos de Memberships y Payments para ser útil |
 | Instructors | `btn_instructors` | Media |
 | Classes | `btn_classes` | Media |
 | Equipment | `btn_equipment` | Baja |

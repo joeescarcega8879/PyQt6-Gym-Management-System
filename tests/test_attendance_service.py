@@ -1,7 +1,7 @@
 """
 Tests for AttendanceService.
 
-All Supabase interactions are isolated by patching the global `db_manager`
+All database interactions are isolated by patching the global `db_manager`
 singleton that `attendance_service` imports at module level.
 
 Patch target: 'src.services.attendance_service.db_manager'
@@ -18,7 +18,7 @@ from src.services.attendance_service import AttendanceService
 # ---------------------------------------------------------------------------
 
 def make_attendance_row(**kwargs) -> dict:
-    """Factory for a raw DB row matching the attendance table schema."""
+    """Factory for a raw DB row matching the attendance table schema (with member join columns)."""
     defaults = dict(
         id="att-001",
         member_id="mem-001",
@@ -26,11 +26,9 @@ def make_attendance_row(**kwargs) -> dict:
         check_out_time=None,
         notes=None,
         created_by="user-001",
-        members={
-            "member_code": "GYM001",
-            "first_name": "John",
-            "last_name": "Doe",
-        },
+        member_code="GYM001",
+        first_name="John",
+        last_name="Doe",
     )
     defaults.update(kwargs)
     return defaults
@@ -94,7 +92,7 @@ class TestRowToAttendance:
         assert att.member.id == "mem-001"
 
     def test_no_member_relation_stays_none(self):
-        row = make_attendance_row(members=None)
+        row = make_attendance_row(member_code=None)
         att = self.svc._row_to_attendance(row)
         assert att.member is None
 
@@ -181,7 +179,8 @@ class TestGetAttendanceByDate:
         self.svc.get_attendance_by_date(date(2026, 3, 25))
         call_kwargs = mock_db.select_range.call_args.kwargs
         assert call_kwargs["table"] == "attendance"
-        assert "members" in call_kwargs["columns"]
+        assert "members.first_name" in call_kwargs["columns"]
+        assert call_kwargs["joins"] is not None
 
     @patch("src.services.attendance_service.db_manager")
     def test_filters_by_check_in_time_column(self, mock_db):

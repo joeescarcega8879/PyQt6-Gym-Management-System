@@ -22,15 +22,15 @@ class Config:
     APP_VERSION = os.getenv('APP_VERSION', '1.0.0')
     DEBUG_MODE = os.getenv('DEBUG_MODE', 'False').lower() == 'true'
 
-    # Supabase connection
-    SUPABASE_URL = os.getenv('SUPABASE_URL')
-    SUPABASE_KEY = os.getenv('SUPABASE_KEY')
+    # PostgreSQL connection
+    DB_HOST = os.getenv('DB_HOST', 'localhost')
+    DB_PORT = os.getenv('DB_PORT', '5432')
+    DB_NAME = os.getenv('DB_NAME', 'gym-system')
+    DB_USER = os.getenv('DB_USER', 'postgres')
+    DB_PASSWORD = os.getenv('DB_PASSWORD', '')
 
     # Security
     SECRET_KEY = os.getenv('SECRET_KEY', 'default-secret-key-change-in-production')
-
-    # Local database path (offline mode)
-    LOCAL_DB_PATH = ROOT_DIR / os.getenv('LOCAL_DB_PATH', 'data/gym_local.db')
 
     # Logging
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
@@ -52,11 +52,14 @@ class Config:
         errors = []
         warnings = []
 
-        if not cls.SUPABASE_URL:
-            errors.append("SUPABASE_URL is not set in .env")
+        if not cls.DB_HOST:
+            errors.append("DB_HOST is not set in .env")
 
-        if not cls.SUPABASE_KEY:
-            errors.append("SUPABASE_KEY is not set in .env")
+        if not cls.DB_NAME:
+            errors.append("DB_NAME is not set in .env")
+
+        if not cls.DB_USER:
+            errors.append("DB_USER is not set in .env")
 
         if cls.SECRET_KEY == 'default-secret-key-change-in-production':
             warnings.append("SECRET_KEY is using the default value; change it before going to production")
@@ -78,11 +81,14 @@ class Config:
         Returns the database connection configuration.
 
         Returns:
-            dict: Dictionary with 'url' and 'key' for Supabase.
+            dict: Dictionary with host, port, dbname, user, password.
         """
         return {
-            'url': cls.SUPABASE_URL,
-            'key': cls.SUPABASE_KEY
+            'host': cls.DB_HOST,
+            'port': int(cls.DB_PORT),
+            'dbname': cls.DB_NAME,
+            'user': cls.DB_USER,
+            'password': cls.DB_PASSWORD,
         }
 
 

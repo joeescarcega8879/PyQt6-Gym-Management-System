@@ -1,9 +1,10 @@
 """
-Supabase database connection manager.
+PostgreSQL database connection manager.
 Provides a unified interface for all database operations using the Singleton pattern.
 """
 from typing import Optional, Any, Dict, List
-from supabase import create_client, Client
+import psycopg2
+import psycopg2.extras
 from src.config import config
 import logging
 
@@ -19,7 +20,7 @@ class DatabaseManager:
     """
 
     _instance: Optional['DatabaseManager'] = None
-    _client: Optional[Client] = None
+    _conn = None
 
     def __new__(cls):
         """Singleton instantiation — only one instance is ever created."""
@@ -29,12 +30,12 @@ class DatabaseManager:
 
     def __init__(self):
         """Initializes the database manager and opens a connection if needed."""
-        if self._client is None:
+        if self._conn is None:
             self.connect()
 
     def connect(self) -> bool:
         """
-        Establishes a connection to Supabase.
+        Establishes a connection to PostgreSQL.
 
         Returns:
             bool: True if the connection was successful, False otherwise.
@@ -48,34 +49,44 @@ class DatabaseManager:
                 return False
 
             db_config = config.get_database_config()
-            self._client = create_client(db_config['url'], db_config['key'])
+            self._conn = psycopg2.connect(
+                host=db_config['host'],
+                port=db_config['port'],
+                dbname=db_config['dbname'],
+                user=db_config['user'],
+                password=db_config['password'],
+                cursor_factory=psycopg2.extras.RealDictCursor,
+            )
+            self._conn.autocommit = True
 
-            logger.info("Supabase connection established successfully")
+            logger.info("PostgreSQL connection established successfully")
             return True
 
         except Exception as e:
-            logger.error(f"Failed to connect to Supabase: {str(e)}")
+            logger.error(f"Failed to connect to PostgreSQL: {str(e)}")
             return False
 
     def disconnect(self):
         """Closes the current database connection."""
-        self._client = None
-        logger.info("Supabase connection closed")
+        if self._conn:
+            self._conn.close()
+            self._conn = None
+        logger.info("PostgreSQL connection closed")
 
     @property
-    def client(self) -> Client:
+    def connection(self):
         """
-        Returns the active Supabase client.
+        Returns the active database connection.
 
         Returns:
-            Client: Active Supabase client instance.
+            Connection: Active psycopg2 connection instance.
 
         Raises:
             ConnectionError: If no connection has been established.
         """
-        if self._client is None:
+        if self._conn is None or self._conn.closed:
             raise ConnectionError("No active database connection")
-        return self._client
+        return self._conn
 
     def is_connected(self) -> bool:
         """
@@ -84,7 +95,41 @@ class DatabaseManager:
         Returns:
             bool: True if connected, False otherwise.
         """
-        return self._client is not None
+        return self._conn is not None and not self._conn.closed
+
+    # ============================================
+    # INTERNAL HELPERS
+    # ============================================
+
+    @staticmethod
+    def _build_where(filters: Optional[Dict[str, Any]]) -> tuple:
+        """Builds a WHERE clause from a filters dictionary.
+
+        Returns:
+            tuple[str, tuple]: (clause, params) — clause starts with ' WHERE '
+                               or is empty; params are the bound values.
+        """
+        if not filters:
+            return "", ()
+        conditions = [f"{col} = %s" for col in filters]
+        return " WHERE " + " AND ".join(conditions), tuple(filters.values())
+
+    def _execute(self, query: str, params: Optional[tuple] = None) -> List[Dict[str, Any]]:
+        """Executes a query and returns all resulting rows as dicts."""
+        try:
+            with self.connection.cursor() as cursor:
+                cursor.execute(query, params)
+                if cursor.description:
+                    return cursor.fetchall()
+                return []
+        except Exception as e:
+            logger.error(f"Query error: {str(e)}")
+            raise
+
+    def _execute_one(self, query: str, params: Optional[tuple] = None) -> Dict[str, Any]:
+        """Executes a query and returns a single row as a dict."""
+        rows = self._execute(query, params)
+        return rows[0] if rows else {}
 
     # ============================================
     # GENERIC CRUD OPERATIONS
@@ -93,7 +138,8 @@ class DatabaseManager:
     def select(self, table: str, columns: str = "*",
                filters: Optional[Dict[str, Any]] = None,
                order_by: Optional[str] = None,
-               limit: Optional[int] = None) -> List[Dict[str, Any]]:
+               limit: Optional[int] = None,
+               joins: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
         Executes a SELECT query on a table.
 
@@ -103,25 +149,24 @@ class DatabaseManager:
             filters: Dictionary of equality filters {column: value}.
             order_by: Column name to sort by.
             limit: Maximum number of records to return.
+            joins: Optional list of JOIN clauses, e.g. ["LEFT JOIN members ON ..."].
 
         Returns:
             List[Dict]: List of matching records.
         """
         try:
-            query = self.client.table(table).select(columns)
-
-            if filters:
-                for column, value in filters.items():
-                    query = query.eq(column, value)
-
+            query = f"SELECT {columns} FROM {table}"
+            if joins:
+                for join_clause in joins:
+                    query += f" {join_clause}"
+            where_clause, params = self._build_where(filters)
+            query += where_clause
             if order_by:
-                query = query.order(order_by)
-
+                query += f" ORDER BY {order_by}"
             if limit:
-                query = query.limit(limit)
+                query += f" LIMIT {limit}"
 
-            response = query.execute()
-            return response.data
+            return self._execute(query, params if params else None)
 
         except Exception as e:
             logger.error(f"SELECT error on {table}: {str(e)}")
@@ -139,9 +184,13 @@ class DatabaseManager:
             Dict: The inserted record including its generated ID.
         """
         try:
-            response = self.client.table(table).insert(data).execute()
+            columns = ", ".join(data.keys())
+            placeholders = ", ".join(["%s"] * len(data))
+            query = f"INSERT INTO {table} ({columns}) VALUES ({placeholders}) RETURNING *"
+
+            row = self._execute_one(query, tuple(data.values()))
             logger.info(f"Record inserted into {table}")
-            return response.data[0] if response.data else {}
+            return row
 
         except Exception as e:
             logger.error(f"INSERT error on {table}: {str(e)}")
@@ -161,14 +210,14 @@ class DatabaseManager:
             List[Dict]: Updated records.
         """
         try:
-            query = self.client.table(table).update(data)
+            set_clause = ", ".join([f"{col} = %s" for col in data])
+            where_clause, where_params = self._build_where(filters)
+            query = f"UPDATE {table} SET {set_clause}{where_clause} RETURNING *"
+            params = tuple(data.values()) + where_params
 
-            for column, value in filters.items():
-                query = query.eq(column, value)
-
-            response = query.execute()
+            rows = self._execute(query, params)
             logger.info(f"Record(s) updated in {table}")
-            return response.data
+            return rows
 
         except Exception as e:
             logger.error(f"UPDATE error on {table}: {str(e)}")
@@ -186,14 +235,12 @@ class DatabaseManager:
             List[Dict]: Deleted records.
         """
         try:
-            query = self.client.table(table).delete()
+            where_clause, params = self._build_where(filters)
+            query = f"DELETE FROM {table}{where_clause} RETURNING *"
 
-            for column, value in filters.items():
-                query = query.eq(column, value)
-
-            response = query.execute()
+            rows = self._execute(query, params)
             logger.info(f"Record(s) deleted from {table}")
-            return response.data
+            return rows
 
         except Exception as e:
             logger.error(f"DELETE error on {table}: {str(e)}")
@@ -201,7 +248,7 @@ class DatabaseManager:
 
     def execute_rpc(self, function_name: str, params: Optional[Dict[str, Any]] = None) -> Any:
         """
-        Executes a stored PostgreSQL function via RPC.
+        Executes a stored PostgreSQL function.
 
         Args:
             function_name: Name of the stored function.
@@ -211,8 +258,13 @@ class DatabaseManager:
             Any: Result returned by the function.
         """
         try:
-            response = self.client.rpc(function_name, params or {}).execute()
-            return response.data
+            if params:
+                placeholders = ", ".join(["%s"] * len(params))
+                query = f"SELECT * FROM {function_name}({placeholders})"
+                return self._execute(query, tuple(params.values()))
+            else:
+                query = f"SELECT * FROM {function_name}()"
+                return self._execute(query)
 
         except Exception as e:
             logger.error(f"RPC error calling {function_name}: {str(e)}")
@@ -221,39 +273,41 @@ class DatabaseManager:
     def select_range(self, table: str, column: str, start: str, end: str,
                      columns: str = "*",
                      filters: Optional[Dict[str, Any]] = None,
-                     order_by: Optional[str] = None) -> List[Dict[str, Any]]:
+                     order_by: Optional[str] = None,
+                     joins: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
         Executes a SELECT query filtering a column between two values (inclusive).
 
         Args:
             table: Target table name.
             column: Column to apply the range filter on.
-            start: Lower bound value (inclusive), as an ISO string.
-            end: Upper bound value (inclusive), as an ISO string.
+            start: Lower bound value (inclusive).
+            end: Upper bound value (inclusive).
             columns: Columns to retrieve (default is all).
             filters: Optional additional equality filters {column: value}.
             order_by: Column name to sort by.
+            joins: Optional list of JOIN clauses.
 
         Returns:
             List[Dict]: List of matching records.
         """
         try:
-            query = (
-                self.client.table(table)
-                .select(columns)
-                .gte(column, start)
-                .lte(column, end)
-            )
+            query = f"SELECT {columns} FROM {table}"
+            if joins:
+                for join_clause in joins:
+                    query += f" {join_clause}"
+            query += f" WHERE {column} >= %s AND {column} <= %s"
+            params = [start, end]
 
             if filters:
                 for col, value in filters.items():
-                    query = query.eq(col, value)
+                    query += f" AND {col} = %s"
+                    params.append(value)
 
             if order_by:
-                query = query.order(order_by)
+                query += f" ORDER BY {order_by}"
 
-            response = query.execute()
-            return response.data
+            return self._execute(query, tuple(params))
 
         except Exception as e:
             logger.error(f"SELECT range error on {table}: {str(e)}")
@@ -271,7 +325,7 @@ class DatabaseManager:
 
         Args:
             table: Target table name.
-            column: Column to search within.
+            column: Column to search within (can be an expression, e.g. "first_name || ' ' || last_name").
             search_term: Text to search for.
             columns: Columns to return in results.
             filters: Optional equality filters applied alongside the ILIKE
@@ -281,16 +335,15 @@ class DatabaseManager:
             List[Dict]: Matching records.
         """
         try:
-            query = self.client.table(table).select(columns).ilike(
-                column, f"%{search_term}%"
-            )
+            query = f"SELECT {columns} FROM {table} WHERE {column} ILIKE %s"
+            params = [f"%{search_term}%"]
 
             if filters:
                 for col, value in filters.items():
-                    query = query.eq(col, value)
+                    query += f" AND {col} = %s"
+                    params.append(value)
 
-            response = query.execute()
-            return response.data
+            return self._execute(query, tuple(params))
 
         except Exception as e:
             logger.error(f"Search error on {table}: {str(e)}")

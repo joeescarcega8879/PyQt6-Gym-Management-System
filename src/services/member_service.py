@@ -11,7 +11,7 @@ from src.services.result import ServiceResult
 
 logger = logging.getLogger(__name__)
 
-# Supabase table name
+# Database table name
 _TABLE = 'members'
 
 
@@ -254,7 +254,7 @@ class MemberService:
 
     @staticmethod
     def _row_to_member(row: dict) -> Member:
-        """Converts a raw Supabase row (dict) into a Member dataclass."""
+        """Converts a raw database row (dict) into a Member dataclass."""
         return Member(
             id=row.get('id'),
             member_code=row.get('member_code', ''),
@@ -277,7 +277,7 @@ class MemberService:
 
     @staticmethod
     def _member_to_row(member: Member) -> dict:
-        """Converts a Member dataclass into a plain dict suitable for Supabase."""
+        """Converts a Member dataclass into a plain dict suitable for the database."""
         row = {
             'first_name': member.first_name.strip(),
             'last_name': member.last_name.strip(),

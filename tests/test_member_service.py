@@ -1,7 +1,7 @@
 """
 Tests for MemberService.
 
-All Supabase interactions are isolated by patching the global `db_manager`
+All database interactions are isolated by patching the global `db_manager`
 singleton that `member_service` imports at module level.
 
 Patch target: 'src.services.member_service.db_manager'

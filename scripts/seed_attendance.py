@@ -1,5 +1,5 @@
 """
-Seed script — inserts realistic attendance records into Supabase.
+Seed script — inserts realistic attendance records into the database.
 
 Run from the project root:
     python scripts/seed_attendance.py

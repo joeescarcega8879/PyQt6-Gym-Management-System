@@ -98,6 +98,19 @@ class ErrorMessages:
     MEMBERSHIPS_STATUS_UPDATE_FAILED = "Failed to update membership status. Please try again."
     MEMBERSHIPS_UNEXPECTED_ERROR     = "An unexpected error occurred. Please try again."
 
+    # Payments module
+    PAYMENTS_NO_PERMISSION_READ   = "You do not have permission to view payments"
+    PAYMENTS_NO_PERMISSION_CREATE = "You do not have permission to register payments"
+    PAYMENTS_NO_PERMISSION_UPDATE = "You do not have permission to update payments"
+    PAYMENTS_MEMBER_NOT_FOUND     = "No active member found with that code or name"
+    PAYMENTS_INVALID_AMOUNT       = "Amount must be greater than zero"
+    PAYMENTS_NO_SELECTION         = "Please select a payment from the table"
+    PAYMENTS_CREATED              = "Payment registered successfully"
+    PAYMENTS_CREATION_FAILED      = "Failed to register payment. Please try again."
+    PAYMENTS_UPDATED              = "Payment updated successfully"
+    PAYMENTS_UPDATE_FAILED        = "Failed to update payment. Please try again."
+    PAYMENTS_UNEXPECTED_ERROR     = "An unexpected error occurred. Please try again."
+
     @staticmethod
     def log_and_mask_error(error: Exception, context: str, user_message: Optional[str] = None) -> str:
         """

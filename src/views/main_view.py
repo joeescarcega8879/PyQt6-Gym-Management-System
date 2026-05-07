@@ -10,8 +10,10 @@ from src.assets.resources_rc import get_icon
 class MainView(QMainWindow):
 
     # Signal to indicate that a child form should be opened
-    form_members_requested = pyqtSignal()
-    form_attendance_requested = pyqtSignal()
+    form_members_requested     = pyqtSignal()
+    form_attendance_requested  = pyqtSignal()
+    form_payments_requested    = pyqtSignal()
+    form_memberships_requested = pyqtSignal()
     
     def __init__(self):
         super(MainView, self).__init__()
@@ -28,6 +30,8 @@ class MainView(QMainWindow):
 
         self.btn_members.clicked.connect(self.form_members_requested.emit)
         self.btn_attendance.clicked.connect(self.form_attendance_requested.emit)
+        self.btn_payments.clicked.connect(self.form_payments_requested.emit)
+        self.btn_memberships.clicked.connect(self.form_memberships_requested.emit)
         
         self.btn_colapse.clicked.connect(self.toggle_sidebar_frame)
 

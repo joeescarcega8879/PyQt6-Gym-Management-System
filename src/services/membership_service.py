@@ -10,6 +10,22 @@ from src.services import ServiceResult
 _PLANS_TABLE = 'membership_plans'
 _MEMBERSHIPS_TABLE = 'member_memberships'
 
+_MEMBERSHIP_COLUMNS = (
+    "member_memberships.id, member_memberships.member_id, "
+    "member_memberships.membership_plan_id, member_memberships.start_date, "
+    "member_memberships.end_date, member_memberships.status, "
+    "member_memberships.auto_renew, member_memberships.notes, "
+    "member_memberships.created_at, member_memberships.updated_at, "
+    "member_memberships.created_by, "
+    "members.member_code, members.first_name, members.last_name, "
+    "membership_plans.name AS plan_name, membership_plans.duration_days, membership_plans.price"
+)
+_MEMBERSHIP_JOINS = [
+    "LEFT JOIN members ON members.id = member_memberships.member_id",
+    "LEFT JOIN membership_plans ON membership_plans.id = member_memberships.membership_plan_id",
+]
+
+
 class MembershipService:
 
     """Service layer for managing gym memberships, including business logic for creating, updating, and validating memberships."""
@@ -26,19 +42,19 @@ class MembershipService:
             )
             plans = [self._row_to_plan(row) for row in rows]
             return ServiceResult.ok(plans)
-        
+
         except Exception as e:
             logging.error(f"Error fetching membership plans: {e}")
             return ServiceResult.fail(str(e))
-        
+
     def get_plan_by_id(self, plan_id: str) -> ServiceResult[MembershipPlan]:
-        
+
         try:
             rows = db_manager.select(table=_PLANS_TABLE, filters={'id': plan_id})
             if not rows:
                 return ServiceResult.not_found("Membership plan not found")
             return ServiceResult.ok(self._row_to_plan(rows[0]))
-        
+
         except Exception as e:
             logging.error(f"Error fetching membership plan by ID: {e}")
             return ServiceResult.fail(str(e))
@@ -115,7 +131,6 @@ class MembershipService:
         3. status — equality filter on status column
         If search_term is given, results are filtered in Python by member name/code.
         """
-        _JOIN_COLUMNS = "*, members(member_code, first_name, last_name), membership_plans(name, duration_days, price)"
 
         try:
             if expiring_days is not None:
@@ -125,7 +140,8 @@ class MembershipService:
                     column='end_date',
                     start=today.isoformat(),
                     end=(today + timedelta(days=expiring_days)).isoformat(),
-                    columns=_JOIN_COLUMNS,
+                    columns=_MEMBERSHIP_COLUMNS,
+                    joins=_MEMBERSHIP_JOINS,
                     filters={'status': MembershipStatus.ACTIVE.value},
                     order_by='end_date',
                 )
@@ -136,7 +152,8 @@ class MembershipService:
                     column='start_date',
                     start=date_from.isoformat(),
                     end=date_to.isoformat(),
-                    columns=_JOIN_COLUMNS,
+                    columns=_MEMBERSHIP_COLUMNS,
+                    joins=_MEMBERSHIP_JOINS,
                     filters=extra_filters,
                     order_by='end_date',
                 )
@@ -144,7 +161,8 @@ class MembershipService:
                 filters = {'status': status.value} if status else None
                 rows = db_manager.select(
                     table=_MEMBERSHIPS_TABLE,
-                    columns=_JOIN_COLUMNS,
+                    columns=_MEMBERSHIP_COLUMNS,
+                    joins=_MEMBERSHIP_JOINS,
                     filters=filters,
                     order_by='end_date',
                 )
@@ -169,12 +187,12 @@ class MembershipService:
 
     def get_memberships_by_member(self, member_id: str) -> ServiceResult[list[MemberMembership]]:
         """Returns all memberships for a specific member, ordered by start date."""
-        _JOIN_COLUMNS = "*, members(member_code, first_name, last_name), membership_plans(name, duration_days, price)"
 
         try:
             rows = db_manager.select(
                 table=_MEMBERSHIPS_TABLE,
-                columns=_JOIN_COLUMNS,
+                columns=_MEMBERSHIP_COLUMNS,
+                joins=_MEMBERSHIP_JOINS,
                 filters={'member_id': member_id},
                 order_by='start_date',
             )
@@ -284,7 +302,7 @@ class MembershipService:
 
     @staticmethod
     def _plan_to_row(plan: MembershipPlan) -> dict:
-        """Converts a MembershipPlan dataclass into a plain dict for Supabase."""
+        """Converts a MembershipPlan dataclass into a plain dict for the database."""
         return {
             'name': plan.name.strip(),
             'description': plan.description,
@@ -297,7 +315,7 @@ class MembershipService:
 
     @staticmethod
     def _row_to_plan(row: dict) -> MembershipPlan:
-        """Converts a raw Supabase row into a MembershipPlan dataclass."""
+        """Converts a raw database row into a MembershipPlan dataclass."""
         return MembershipPlan(
             id=row.get('id'),
             name=row.get('name', ''),
@@ -314,22 +332,22 @@ class MembershipService:
 
     @staticmethod
     def _row_to_membership(row: dict) -> MemberMembership:
-        """Converts a raw Supabase row (with joins) into a MemberMembership dataclass."""
-        member_data = row.get('members')
+        """Converts a raw database row (with joins) into a MemberMembership dataclass."""
+        member_code = row.get('member_code')
         member = Member(
             id=row.get('member_id'),
-            member_code=member_data.get('member_code', ''),
-            first_name=member_data.get('first_name', ''),
-            last_name=member_data.get('last_name', ''),
-        ) if member_data else None
+            member_code=member_code or '',
+            first_name=row.get('first_name', ''),
+            last_name=row.get('last_name', ''),
+        ) if member_code else None
 
-        plan_data = row.get('membership_plans')
+        plan_name = row.get('plan_name')
         plan = MembershipPlan(
             id=row.get('membership_plan_id'),
-            name=plan_data.get('name', ''),
-            duration_days=plan_data.get('duration_days', 0),
-            price=float(plan_data.get('price', 0.0)),
-        ) if plan_data else None
+            name=plan_name or '',
+            duration_days=row.get('duration_days', 0),
+            price=float(row.get('price', 0.0)),
+        ) if plan_name else None
 
         def parse_date(value) -> Optional[date]:
             if not value:

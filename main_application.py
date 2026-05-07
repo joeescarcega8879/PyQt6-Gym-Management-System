@@ -12,11 +12,15 @@ from src.views.login_view import LoginView
 from src.views.main_view import MainView
 from src.views.member_view import MemberView
 from src.views.attendance_view import AttendanceView
+from src.views.payment_view import PaymentView
+from src.views.membership_view import MembershipView
 
 from src.presenters.login_presenter import LoginPresenter
 from src.presenters.main_presenter import MainPresenter
 from src.presenters.member_presenter import MemberPresenter
 from src.presenters.attendance_presenter import AttendancePresenter
+from src.presenters.payment_presenter import PaymentPresenter
+from src.presenters.membership_presenter import MembershipPresenter
 
 import src.assets.resources_rc  # noqa — loads embedded icons into memory
 
@@ -84,13 +88,33 @@ class MainApplication:
 
     def open_attendance_form(self) -> None:
         self.logger.info("Opening attendance form")
-        
+
         self.attendance_view = AttendanceView()
         self.attendance_presenter = AttendancePresenter(self.attendance_view, self, self.status_bar_controller.show_message, self.current_user)
-        
+
         mdi_sub_window = QMdiSubWindow()
-        
+
         self.main_view.open_child_form(self.attendance_view, mdi_sub_window)
+
+    def open_payments_form(self) -> None:
+        self.logger.info("Opening payments form")
+
+        self.payment_view = PaymentView()
+        self.payment_presenter = PaymentPresenter(self.payment_view, self, self.status_bar_controller.show_message, self.current_user)
+
+        mdi_sub_window = QMdiSubWindow()
+
+        self.main_view.open_child_form(self.payment_view, mdi_sub_window)
+
+    def open_memberships_form(self) -> None:
+        self.logger.info("Opening memberships form")
+
+        self.membership_view = MembershipView()
+        self.membership_presenter = MembershipPresenter(self.membership_view, self, self.status_bar_controller.show_message, self.current_user)
+
+        mdi_sub_window = QMdiSubWindow()
+
+        self.main_view.open_child_form(self.membership_view, mdi_sub_window)
 
 def main():
     app = QApplication(sys.argv)

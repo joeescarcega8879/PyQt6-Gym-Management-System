@@ -23,4 +23,9 @@ PERMISSIONS = {
     Permissions.MEMBERSHIPS_UPDATE: {UserRole.ADMIN, UserRole.RECEPTIONIST},
     Permissions.MEMBERSHIPS_DELETE: {UserRole.ADMIN},
 
+    # Permissions related to payments
+    Permissions.PAYMENTS_READ: {UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.ACCOUNTANT},
+    Permissions.PAYMENTS_CREATE: {UserRole.ADMIN, UserRole.RECEPTIONIST},
+    Permissions.PAYMENTS_UPDATE: {UserRole.ADMIN, UserRole.RECEPTIONIST},
+
 }

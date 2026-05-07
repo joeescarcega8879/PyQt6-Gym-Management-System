@@ -29,7 +29,7 @@ def sample_member() -> Member:
 
 @pytest.fixture
 def sample_member_row() -> dict:
-    """A raw Supabase row dict matching the members table schema."""
+    """A raw database row dict matching the members table schema."""
     return dict(
         id="uuid-001",
         member_code="MEM-AABBCCDD",

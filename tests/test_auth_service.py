@@ -1,7 +1,7 @@
 """
 Tests for AuthService.
 
-All Supabase interactions are isolated by patching the global `db_manager`
+All database interactions are isolated by patching the global `db_manager`
 singleton imported inside auth_service.
 
 Patch target: 'src.services.auth_service.db_manager'

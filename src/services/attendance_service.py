@@ -7,12 +7,20 @@ from src.services import ServiceResult
 _TABLE = 'attendance'
 _MEMBERS_TABLE = 'members'
 
+_ATTENDANCE_COLUMNS = (
+    "attendance.id, attendance.member_id, attendance.check_in_time, "
+    "attendance.check_out_time, attendance.notes, attendance.created_by, "
+    "members.member_code, members.first_name, members.last_name"
+)
+_ATTENDANCE_JOIN = ["LEFT JOIN members ON members.id = attendance.member_id"]
+
+
 class AttendanceService:
 
     # Public methods
     def get_attendance_by_date(self, filter_date: date) -> ServiceResult[list[Attendance]]:
         """Returns all attendance records for a given local date, with member info.
-        
+
         Converts the local date boundaries to UTC before querying, so records
         stored in UTC (e.g. 2026-03-31T00:59+00:00 = 2026-03-30T18:59 local)
         are correctly matched to the user's local calendar day.
@@ -29,7 +37,8 @@ class AttendanceService:
                 column="check_in_time",
                 start=start,
                 end=end,
-                columns="*, members(member_code, first_name, last_name)",
+                columns=_ATTENDANCE_COLUMNS,
+                joins=_ATTENDANCE_JOIN,
                 order_by="check_in_time",
             )
 
@@ -67,11 +76,11 @@ class AttendanceService:
 
             if not members:
                 return ServiceResult.not_found("No active member found with that code or name")
-            
+
             return ServiceResult.ok(members)
         except Exception as e:
             return ServiceResult.fail(str(e))
-        
+
     def check_in(self, member_id: str, created_by: Optional[str] = None) -> ServiceResult[Attendance]:
         """Creates a check-in record. Fails if the member already has an open check-in today."""
 
@@ -79,7 +88,7 @@ class AttendanceService:
             validation_error = self._validate_no_open_checkin(member_id)
             if validation_error:
                 return ServiceResult.fail(validation_error)
-            
+
             now = datetime.now(timezone.utc).isoformat()
             data =  {
                 "member_id": member_id,
@@ -91,7 +100,7 @@ class AttendanceService:
             return ServiceResult.ok(self._row_to_attendance(row))
         except Exception as e:
             return ServiceResult.fail(str(e))
-    
+
     def find_open_checkin_for_member(self, member_id: str) -> ServiceResult[Attendance]:
         """Returns the open attendance record for a member today, or not_found if none exists."""
         try:
@@ -105,7 +114,8 @@ class AttendanceService:
                 column="check_in_time",
                 start=start,
                 end=end,
-                columns="*, members(member_code, first_name, last_name)",
+                columns=_ATTENDANCE_COLUMNS,
+                joins=_ATTENDANCE_JOIN,
                 filters={"member_id": member_id},
                 order_by="check_in_time",
             )
@@ -156,18 +166,17 @@ class AttendanceService:
         for row in rows:
             if row.get('check_out_time') is None:
                 return "This member already has an open check-in today"
-    
+
     @staticmethod
     def _row_to_attendance(row: dict) -> Attendance:
-        member_data = row.get("members")
-        member = None
-        if member_data:
-            member = Member(
-                id=row.get("member_id"),
-                member_code=member_data.get("member_code", ""),
-                first_name=member_data.get("first_name", ""),
-                last_name=member_data.get("last_name", ""),
-            )
+        member_code = row.get("member_code")
+        member = Member(
+            id=row.get("member_id"),
+            member_code=member_code or "",
+            first_name=row.get("first_name", ""),
+            last_name=row.get("last_name", ""),
+        ) if member_code else None
+
         def parse_dt(value) -> Optional[datetime]:
             if not value:
                 return None
@@ -177,6 +186,7 @@ class AttendanceService:
                 return datetime.fromisoformat(str(value))
             except ValueError:
                 return None
+
         return Attendance(
             id=row.get("id"),
             member_id=row.get("member_id", ""),
@@ -186,7 +196,7 @@ class AttendanceService:
             created_by=row.get("created_by"),
             member=member,
         )
-    
+
     @staticmethod
     def _row_to_member(row: dict) -> Member:
         return Member(
@@ -196,5 +206,5 @@ class AttendanceService:
             last_name=row.get("last_name", ""),
             is_active=row.get("is_active", True),
         )
-    
+
 attendance_service = AttendanceService()
