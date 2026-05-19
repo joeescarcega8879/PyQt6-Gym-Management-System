@@ -1,75 +1,60 @@
 # Gym Management System
 
-Sistema de gestión integral para gimnasios desarrollado con Python, PyQt6 y Supabase (PostgreSQL).
+Sistema de gestión integral para gimnasios desarrollado con Python, PyQt6 y PostgreSQL local.
 
 ## Características Principales
 
-- **Gestión de Miembros**: CRUD completo de clientes con datos personales y fotografías
-- **Control de Asistencia**: Check-in/check-out con código de barras o QR
-- **Membresías y Planes**: Gestión de diferentes tipos de planes con renovación automática
-- **Pagos y Facturación**: Registro de pagos con múltiples métodos y estados de cuenta
-- **Clases Grupales**: Programación de clases, horarios e inscripciones
-- **Gestión de Instructores**: Control de instructores y asignación a clases
-- **Inventario de Equipamiento**: Control de máquinas y mantenimiento
-- **Reportes y Estadísticas**: Dashboard con gráficos y exportación a PDF/Excel
-- **Sistema de Caja**: Apertura/cierre de caja con control de efectivo
-- **Notificaciones Automáticas**: Alertas de vencimiento y recordatorios
-- **Modo Offline**: Funcionamiento sin internet con sincronización posterior
-- **Múltiples Roles**: Admin, Recepcionista, Instructor, Contador
+- **Gestión de Miembros**: CRUD completo con datos personales
+- **Control de Asistencia**: Check-in/check-out por búsqueda de nombre o código
+- **Membresías y Planes**: Gestión de planes con asignación, suspensión y cancelación
+- **Pagos**: Registro de cobros con múltiples métodos y estados
+- **Múltiples Roles**: Admin, Recepcionista, Contador
 
 ## Arquitectura
 
-El proyecto sigue el patrón **MVP (Model-View-Presenter)** para facilitar el mantenimiento y futura migración a web con Django.
+El proyecto sigue el patrón **MVP (Model-View-Presenter)**.
 
 ```
 gym-management-system/
 ├── src/
-│   ├── models/           # Modelos de datos (dataclasses)
-│   ├── presenters/       # Lógica de presentación (MVP)
-│   ├── views/            # Interfaces PyQt6
-│   ├── database/         # Conexión y repositorios Supabase
-│   ├── services/         # Lógica de negocio reutilizable
-│   ├── utils/            # Utilidades (validaciones, helpers)
-│   ├── config/           # Configuración de la app
-│   └── resources/        # Imágenes, iconos, estilos QSS
-├── tests/                # Tests unitarios e integración
-├── docs/                 # Documentación y esquema SQL
-├── main.py               # Punto de entrada
-└── requirements.txt      # Dependencias
+│   ├── models/       # Dataclasses (Member, User, Payment, etc.) y enums
+│   ├── presenters/   # Lógica de presentación — coordinación view ↔ service
+│   ├── views/        # Interfaces PyQt6 + archivos .ui de Qt Designer
+│   ├── database/     # DatabaseManager singleton — SQL puro via psycopg2
+│   ├── services/     # Lógica de negocio (MemberService, AuthService, etc.)
+│   ├── domain/       # Permisos por rol (PermissionService, Permissions)
+│   ├── utils/        # Helpers: StatusBar, SetFormat, ErrorMessages
+│   └── config/       # Lectura de .env (Settings)
+├── tests/            # Tests unitarios (316 tests, 100% passing)
+├── scripts/          # build_resources.py — genera resources_rc.py con iconos base64
+├── docs/             # Esquema SQL
+├── main.py           # Punto de entrada
+└── requirements.txt  # Dependencias
 ```
 
 ## Requisitos Previos
 
 - **Python 3.11+**
-- **Cuenta de Supabase** (gratis en https://supabase.com)
-- **Git** (opcional, para clonar el repositorio)
-
-### Dependencias del Sistema (Linux)
-
-```bash
-sudo apt-get update
-sudo apt-get install -y libzbar0 libxcb-xinerama0
-```
+- **PostgreSQL 14+** instalado y corriendo localmente
 
 ## Instalación
 
 ### 1. Clonar o descargar el proyecto
 
 ```bash
-cd gym-management-system
+cd PyQt6-Gym-Management-System
 ```
 
 ### 2. Crear entorno virtual
 
 ```bash
 # Crear entorno virtual
-python3 -m venv venv
+python -m venv venv
 
-# Activar entorno virtual
-# En Linux/Mac:
+# Activar en Linux/Mac:
 source venv/bin/activate
 
-# En Windows:
+# Activar en Windows:
 venv\Scripts\activate
 ```
 
@@ -79,53 +64,49 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 4. Configurar Supabase
+### 4. Configurar la base de datos
 
-#### 4.1. Crear proyecto en Supabase
+#### 4.1. Crear la base de datos en PostgreSQL
 
-1. Ve a https://supabase.com
-2. Crea una cuenta o inicia sesión
-3. Crea un nuevo proyecto:
-   - Nombre: `gym-management` (o el que prefieras)
-   - Contraseña de base de datos: (guárdala, la necesitarás)
-   - Región: Elige la más cercana a ti
+```sql
+CREATE DATABASE "gym-system";
+```
 
-#### 4.2. Crear el esquema de base de datos
+#### 4.2. Crear el esquema
 
-1. En Supabase, ve a **SQL Editor**
-2. Abre el archivo `docs/database_schema.sql`
-3. Copia todo el contenido y pégalo en el SQL Editor de Supabase
-4. Ejecuta el script (botón "Run")
-
-Esto creará:
-- 15 tablas con todas las relaciones
-- Índices para mejorar performance
-- Triggers para actualización automática de timestamps
-- Un usuario admin por defecto (ver credenciales abajo)
-
-#### 4.3. Obtener credenciales de Supabase
-
-1. En Supabase, ve a **Settings > API**
-2. Copia:
-   - **Project URL** (ejemplo: `https://abcdefghijk.supabase.co`)
-   - **anon/public key** (ejemplo: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`)
-
-#### 4.4. Configurar archivo .env
+Ejecuta el archivo de esquema en psql o pgAdmin:
 
 ```bash
-# Copiar el archivo de ejemplo
-cp .env.example .env
-
-# Editar el archivo .env con tus credenciales
-nano .env  # o usa tu editor favorito
+psql -U postgres -d gym-system -f docs/database_schema.sql
 ```
 
-Reemplaza los valores:
+Esto creará las tablas, índices, triggers y un usuario `admin` por defecto.
+
+#### 4.3. Configurar el archivo .env
+
+Copia el archivo de ejemplo y edítalo:
+
+```bash
+cp .env.example .env
+```
+
+Contenido de `.env`:
 
 ```env
-SUPABASE_URL=https://tu-proyecto.supabase.co
-SUPABASE_KEY=tu_anon_key_aqui
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=gym-system
+DB_USER=postgres
+DB_PASSWORD=tu_password_aqui
 ```
+
+### 5. Generar recursos de iconos
+
+```bash
+python scripts/build_resources.py
+```
+
+Esto genera `src/assets/resources_rc.py` con los iconos embebidos en base64.
 
 ## Uso
 
@@ -137,8 +118,6 @@ python main.py
 
 ### Credenciales por defecto
 
-Después de ejecutar el script SQL, habrá un usuario administrador creado:
-
 - **Usuario**: `admin`
 - **Contraseña**: `admin123`
 
@@ -149,164 +128,91 @@ Después de ejecutar el script SQL, habrá un usuario administrador creado:
 ### Estructura de un módulo (patrón MVP)
 
 ```python
-# 1. Modelo (src/models/__init__.py)
+# 1. Modelo (src/models/models.py)
 @dataclass
 class Member:
-    id: str
-    name: str
+    id: Optional[str]
+    first_name: str
+    last_name: str
     # ...
 
 # 2. Vista (src/views/member_view.py)
 class MemberView(QWidget):
-    # Interfaz gráfica con PyQt6
-    member_added = pyqtSignal(dict)
-    
-# 3. Presenter (src/presenters/member_presenter.py)
+    save_requested = pyqtSignal()
+    search_requested = pyqtSignal()
+
+# 3. Service (src/services/member_service.py)
+class MemberService:
+    def create_member(self, member: Member) -> ServiceResult[Member]: ...
+
+# 4. Presenter (src/presenters/member_presenter.py)
 class MemberPresenter:
-    def __init__(self, view):
+    def __init__(self, view, current_user):
         self.view = view
-        self.view.member_added.connect(self._handle_add)
+        self.view.save_requested.connect(self._handle_save)
 ```
 
 ### Agregar un nuevo módulo
 
-1. Crear el modelo en `src/models/`
-2. Crear la vista en `src/views/`
-3. Crear el presenter en `src/presenters/`
-4. Conectar en el menú principal
+1. Agregar dataclass en `src/models/models.py`
+2. Crear service en `src/services/`
+3. Crear view en `src/views/` (con archivo `.ui` en `src/views/ui/`)
+4. Crear presenter en `src/presenters/`
+5. Conectar al sidebar en `main_window.py`
+6. Agregar tests en `tests/`
 
 ### Tests
 
 ```bash
 # Ejecutar todos los tests
-pytest
+python -m pytest tests/ -v
 
 # Con cobertura
-pytest --cov=src tests/
-
-# Solo tests unitarios
-pytest tests/unit/
+python -m pytest tests/ --cov=src
 ```
 
-### Formateo de código
-
-```bash
-# Formatear con black
-black src/
-
-# Verificar con flake8
-flake8 src/
-
-# Type checking con mypy
-mypy src/
-```
-
-## Migración a Django (futuro)
-
-El proyecto está diseñado para facilitar la migración a Django:
-
-### Modelos
-Los dataclasses se convierten fácilmente a Django Models:
-
-```python
-# Actual (dataclass)
-@dataclass
-class Member:
-    name: str
-    email: str
-
-# Django (futuro)
-class Member(models.Model):
-    name = models.CharField(max_length=100)
-    email = models.EmailField()
-```
-
-### Servicios
-La lógica en `src/services/` se puede reutilizar directamente o mover a managers de Django.
-
-### Base de datos
-Supabase usa PostgreSQL, compatible con Django. Solo necesitas actualizar `settings.py`:
-
-```python
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'HOST': 'tu-proyecto.supabase.co',
-        'NAME': 'postgres',
-        'USER': 'postgres',
-        'PASSWORD': 'tu-contraseña',
-        'PORT': '5432',
-    }
-}
-```
+Estrategia de mocking: `db_manager` se parchea con `unittest.mock.patch('src.services.<modulo>.db_manager')`. No se usa una BD real en los tests.
 
 ## Resolución de Problemas
 
-### Error: "SUPABASE_URL no está configurada"
+### Error: "Could not connect to PostgreSQL"
 
-- Verifica que el archivo `.env` existe (no `.env.example`)
-- Asegúrate de haber configurado las variables correctamente
+- Verifica que PostgreSQL esté corriendo: `pg_isready` o revisar el servicio
+- Confirma que las credenciales en `.env` son correctas
+- Verifica que la base de datos `gym-system` existe
 
-### Error: "Import dotenv could not be resolved"
-
-```bash
-pip install python-dotenv
-```
-
-### Error: "No se puede conectar a Supabase"
-
-- Verifica que tu URL y API Key son correctos
-- Asegúrate de tener conexión a internet
-- Revisa los logs en `logs/gym_system.log`
-
-### Error al leer códigos de barras (Linux)
+### Error: "No module named 'psycopg2'"
 
 ```bash
-sudo apt-get install libzbar0
+pip install psycopg2-binary
 ```
+
+### Error: "resources_rc not found" o iconos no aparecen
+
+```bash
+python scripts/build_resources.py
+```
+
+### Error al importar en Windows
+
+Asegúrate de tener el entorno virtual activado y haber instalado las dependencias con `pip install -r requirements.txt`.
 
 ## Roadmap
 
-### Fase 1 - Core (Actual)
-- [x] Sistema de autenticación
-- [x] Configuración de base de datos
-- [x] Estructura MVP
-- [ ] CRUD de miembros
-- [ ] Control de asistencia
+### Completado
+- [x] Sistema de autenticacion (bcrypt + QThread)
+- [x] CRUD de miembros
+- [x] Control de asistencia (check-in/check-out)
+- [x] Pagos y facturacion
+- [x] Membresías y planes
 
-### Fase 2 - Finanzas
-- [ ] Sistema de pagos
-- [ ] Control de caja
-- [ ] Reportes financieros
-
-### Fase 3 - Clases
+### Pendiente
+- [ ] Dashboard con estadísticas
 - [ ] Gestión de instructores
 - [ ] Programación de clases
-- [ ] Inscripciones
-
-### Fase 4 - Avanzado
-- [ ] Lector de códigos QR/Barras
-- [ ] Modo offline
-- [ ] Backup automático
-- [ ] Exportación PDF/Excel
-
-### Fase 5 - Dashboard
-- [ ] Estadísticas y gráficos
-- [ ] Notificaciones automáticas
-- [ ] Reportes customizables
-
-## Contribuir
-
-Este es un proyecto de práctica, pero las sugerencias son bienvenidas.
+- [ ] Inventario de equipamiento
+- [ ] Reportes y exportación
 
 ## Licencia
 
-Este proyecto es de código abierto para fines educativos.
-
-## Contacto
-
-Para preguntas o sugerencias, abre un issue en el repositorio.
-
----
-
-**Nota**: Este es un proyecto de práctica. No se recomienda usar en producción sin realizar pruebas exhaustivas y reforzar la seguridad.
+Proyecto de práctica educativa. No recomendado para producción sin pruebas exhaustivas de seguridad.

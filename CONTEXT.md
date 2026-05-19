@@ -6,12 +6,12 @@
 
 ## Descripción General
 
-Aplicación de escritorio para gestión de gimnasios construida con PyQt6 y Supabase (PostgreSQL en la nube).
+Aplicación de escritorio para gestión de gimnasios construida con PyQt6 y PostgreSQL local.
 
 - **Patrón de arquitectura:** MVP (Model-View-Presenter)
-- **Base de datos:** Supabase (cliente `supabase-py`)
+- **Base de datos:** PostgreSQL local (driver `psycopg2-binary`)
 - **UI:** PyQt6 con archivos `.ui` de Qt Designer
-- **Autenticación:** bcrypt + usuarios almacenados en Supabase
+- **Autenticación:** bcrypt + tabla `users` propia en PostgreSQL
 
 ---
 
@@ -19,29 +19,45 @@ Aplicación de escritorio para gestión de gimnasios construida con PyQt6 y Supa
 
 ```
 src/
-├── assets/         # Stylesheet global (dark theme, styles.css)
-├── config/         # Lectura de .env (Settings)
-├── database/       # Singleton DatabaseManager — CRUD genérico sobre Supabase
-├── domain/         # Permisos por rol (PermissionService, Permissions)
-├── models/         # Dataclasses (Member, User, etc.) y enums
-├── presenters/     # Lógica de negocio UI (MemberPresenter, LoginPresenter)
-├── services/       # Lógica de negocio pura (MemberService, AuthService)
-├── utils/          # Helpers: StatusBar, SetFormat, ErrorMessages
-└── views/          # QWidget/QMainWindow + archivos .ui
+├── assets/
+│   ├── styles.css          # Stylesheet base (dark theme, accent azul)
+│   ├── icons/              # 12 íconos PNG embebidos como base64
+│   ├── resources_rc.py     # Generado — get_icon(path) -> QIcon  [.gitignore]
+│   └── themes/             # 5 archivos CSS de temas (dark_blue, green, purple, orange, cyan)
+├── config/                 # Lectura de .env (Settings), DATA_DIR, LOGS_DIR
+├── database/               # Singleton DatabaseManager — SQL puro via psycopg2
+├── domain/                 # Permisos por rol (PermissionService, Permissions)
+├── models/                 # Dataclasses (Member, User, Class, etc.) y enums
+├── presenters/             # Lógica de negocio UI (MemberPresenter, ClassPresenter, etc.)
+├── services/               # Lógica de negocio pura (MemberService, SettingsService, etc.)
+├── utils/                  # Helpers: StatusBar, SetFormat, ErrorMessages
+└── views/
+    ├── ui/                 # Archivos .ui de Qt Designer
+    └── widgets/            # Componentes reutilizables (MemberSelectDialog)
+data/
+└── user_settings.json      # Preferencias de usuario — persistencia de tema [.gitignore]
+scripts/
+├── build_resources.py      # Embebe íconos en resources_rc.py
+└── generate_themes.py      # Genera los 5 CSS de temas desde styles.css
 ```
 
 ---
 
 ## Módulos Implementados
 
-| Módulo      | Estado       | Notas                                                                                      |
-|-------------|--------------|--------------------------------------------------------------------------------------------|
-| Login       | Completo     | bcrypt, roles, sesión. Login en QThread (no bloquea UI)                                    |
-| Members     | Completo     | CRUD funcional, tests, código limpio                                                       |
-| Attendance  | Completo     | CRUD completo, check-in/out por búsqueda o selección, MemberSelectDialog, 46 tests         |
-| Payments    | Completo     | Registro de cobros, filtros por status/método/fecha/búsqueda, 43 tests                     |
-| Memberships | Completo     | Planes + membresías asignadas, CRUD, transiciones de estado, 94 tests                      |
-| Otros       | No iniciados | Sidebar conectado a Members, Attendance, Payments y Memberships                            |
+| Módulo      | Estado   | Tests | Notas                                                                 |
+|-------------|----------|-------|-----------------------------------------------------------------------|
+| Login       | Completo | 31    | bcrypt, roles, sesión. Login en QThread (no bloquea UI)               |
+| Members     | Completo | 62    | CRUD funcional, permisos, íconos, código limpio                       |
+| Attendance  | Completo | 46    | Check-in/out por búsqueda o selección, MemberSelectDialog, timezone   |
+| Payments    | Completo | 43    | Registro de cobros, filtros por status/método/fecha/búsqueda          |
+| Memberships | Completo | 94    | Planes + membresías asignadas, CRUD, transiciones de estado           |
+| Classes     | Completo | 75    | CRUD clases + horarios + inscripciones, 3 tabs, capacidad máxima      |
+| Settings    | Completo | 31    | Cambio de tema en vivo, 5 temas dark, persistencia en JSON            |
+| Dashboard   | Pendiente | —    | Requiere datos de Memberships y Payments                              |
+| Instructors | Pendiente | —    | btn_instructors en sidebar, sin implementar                           |
+| Equipment   | Pendiente | —    | btn_equipment en sidebar, sin implementar                             |
+| Reports     | Pendiente | —    | btn_reports en sidebar, sin implementar                               |
 
 ---
 
@@ -54,7 +70,7 @@ src/
 | `src/presenters/member_presenter.py` | Señales, permisos, coordinación view↔service |
 | `src/views/member_view.py`           | UI pura, señales, populate_table             |
 | `src/views/ui/member_view.ui`        | Layout Qt Designer                           |
-| `src/database/manager.py`            | select / insert / update / delete / search   |
+| `src/database/manager.py`            | select / insert / update / delete / search / select_range |
 
 ---
 
@@ -156,7 +172,7 @@ src/
 - `end_date = start_date + timedelta(days=plan.duration_days)` calculado en `assign_membership`
 - `start_date` / `end_date` son tipo `date` → `select_range` recibe `date.isoformat()` (sin timezone)
 - `search_term` en `get_memberships` filtra en Python sobre `member.full_name` y `member.member_code`
-- `_plan_to_row` no incluye `id` (lo genera Supabase en insert; en update va en `filters`)
+- `_plan_to_row` no incluye `id` (lo genera PostgreSQL en insert; en update va en `filters`)
 - `expiring_days` tiene prioridad sobre `date_from`/`date_to` en el presenter
 
 ### View — Señales
@@ -209,9 +225,143 @@ src/
 
 ---
 
+## Módulo Classes — Archivos Implementados ✅
+
+| Archivo | Notas |
+|---|---|
+| `src/models/models.py` — `Class`, `ClassSchedule`, `ClassEnrollment` | Dataclasses completos, ya existían |
+| `src/models/enums.py` — `DifficultyLevel`, `EnrollmentStatus` | all/beginner/intermediate/advanced · enrolled/attended/absent/cancelled |
+| `src/domain/permissions_definitions.py` | CLASSES_READ/CREATE/UPDATE, SCHEDULES_READ/CREATE/UPDATE, ENROLLMENTS_READ/CREATE/UPDATE |
+| `src/domain/permissions.py` | CLASSES/SCHEDULES_* → ADMIN; ENROLLMENTS_* → ADMIN/RECEPTIONIST |
+| `src/utils/error_messages.py` | 15 constantes Classes + 12 constantes Schedules + 12 constantes Enrollments |
+| `src/services/class_service.py` | 11 métodos públicos: CRUD clases, CRUD horarios, CRUD inscripciones |
+| `src/views/ui/class_view.ui` | QTabWidget 3 tabs, 1200×750 |
+| `src/views/class_view.py` | 16 señales, getters/setters para las 3 tabs |
+| `src/presenters/class_presenter.py` | Classes CRUD + Schedules CRUD + Enrollments con MemberSelectDialog |
+| `tests/test_class_service.py` | 75 tests, 100% passing |
+
+### Service — Métodos públicos
+
+| Método | Descripción |
+|---|---|
+| `get_all_classes(include_inactive)` | SELECT con filtro opcional `is_active`, ordenado por `name` |
+| `get_class_by_id(class_id)` | SELECT por `id`, retorna `not_found` si no existe |
+| `create_class(gym_class)` | Valida → inserta con `created_at`/`updated_at` |
+| `update_class(gym_class)` | Valida id + campos → verifica existencia → actualiza |
+| `toggle_class_status(class_id, is_active)` | UPDATE `is_active` + `updated_at` |
+| `get_schedules(class_id, day_of_week, include_inactive)` | SELECT con JOIN a `classes`, filtros opcionales |
+| `get_schedule_by_id(schedule_id)` | SELECT con JOIN, retorna `not_found` si no existe |
+| `create_schedule(schedule)` | Valida → inserta |
+| `update_schedule(schedule)` | Valida id + campos → verifica existencia → actualiza |
+| `toggle_schedule_status(schedule_id, is_active)` | UPDATE `is_active` + `updated_at` |
+| `get_enrollments(schedule_id, class_date, status, search_term)` | SELECT con JOINs; búsqueda por miembro en Python |
+| `get_enrollments_by_member(member_id)` | SELECT con JOINs, ordenado por `class_date` |
+| `enroll_member(schedule_id, member_id, class_date, notes, created_by)` | Valida duplicado + capacidad → inserta |
+| `update_enrollment_status(enrollment_id, new_status)` | Verifica existencia → UPDATE status |
+| `get_enrollment_count(schedule_id, class_date)` | Cuenta inscripciones no canceladas para validar capacidad |
+
+### Notas de implementación
+
+- `day_of_week`: 0 = Sunday, 6 = Saturday (igual que JS)
+- `start_time` / `end_time`: strings `"HH:MM"` — `_validate_schedule` exige start < end
+- `max_capacity = None` → ilimitado; `max_capacity = 0` → inválido (falla validación)
+- Capacidad verificada en Python antes del insert, consultando `get_enrollment_count()`
+- `search_term` en `get_enrollments` filtra en Python por `member.full_name` y `member.member_code`
+- Tablas BD requeridas: `classes`, `class_schedules`, `class_enrollments`
+
+### Columnas de `classes_table`
+
+| # | Header | Fuente |
+|---|---|---|
+| 0 | Name | `c.name` + UUID en `UserRole` |
+| 1 | Duration | `f"{c.duration_minutes} min"` |
+| 2 | Capacity | `str(c.max_capacity)` o `"Unlimited"` |
+| 3 | Difficulty | `c.difficulty_level.value.capitalize()` |
+| 4 | Status | `"Active"` / `"Inactive"` |
+
+### Columnas de `schedules_table`
+
+| # | Header | Fuente |
+|---|---|---|
+| 0 | Class | `s.class_info.name` + UUID en `UserRole` |
+| 1 | Day | `_DAY_LABELS[s.day_of_week]` |
+| 2 | Start | `str(s.start_time)[:5]` |
+| 3 | End | `str(s.end_time)[:5]` |
+| 4 | Room | `s.room or ""` |
+| 5 | Status | `"Active"` / `"Inactive"` |
+
+### Columnas de `enrollments_table`
+
+| # | Header | Fuente |
+|---|---|---|
+| 0 | Member Code | `e.member.member_code` + UUID en `UserRole` |
+| 1 | Member Name | `e.member.full_name` |
+| 2 | Class | `e.schedule.class_info.name` |
+| 3 | Date | `e.class_date.strftime("%Y-%m-%d")` |
+| 4 | Start | `str(e.schedule.start_time)[:5]` |
+| 5 | Room | `e.schedule.room or ""` |
+| 6 | Status | `e.status.value.capitalize()` |
+
+---
+
+## Módulo Settings — Archivos Implementados ✅
+
+| Archivo | Notas |
+|---|---|
+| `src/assets/themes/dark_blue.css` | Tema default — accent `#2196F3` |
+| `src/assets/themes/dark_green.css` | Accent `#4CAF50` |
+| `src/assets/themes/dark_purple.css` | Accent `#9C27B0` |
+| `src/assets/themes/dark_orange.css` | Accent `#FF9800` |
+| `src/assets/themes/dark_cyan.css` | Accent `#00BCD4` |
+| `src/services/settings_service.py` | `load()`, `save()`, `load_theme_css()`, `get_available_themes()` |
+| `src/views/ui/settings_view.ui` | 2 columnas: lista de temas + preview panel, 900×600 |
+| `src/views/settings_view.py` | 3 señales, `populate_theme_list()`, `update_preview()`, íconos de color |
+| `src/presenters/settings_presenter.py` | Preview en vivo + guardar + descartar, `_original_theme_key` para revert |
+| `tests/test_settings_service.py` | 31 tests, 100% passing |
+| `scripts/generate_themes.py` | Genera los 5 CSS reemplazando tokens de color del base |
+
+### Service — Métodos públicos
+
+| Método | Descripción |
+|---|---|
+| `load()` | Lee `data/user_settings.json`; retorna defaults si no existe |
+| `save(settings)` | Escribe `data/user_settings.json` como JSON indentado |
+| `get_theme_css_path(theme_key)` | Retorna `Path` al CSS del tema, o `None` si no existe |
+| `load_theme_css(theme_key)` | Lee el CSS; fallback a `dark_blue` si la clave es inválida |
+| `get_available_themes()` | Lista de `(key, display_name, accent_hex)` tuples |
+
+### Notas de implementación
+
+- Persistencia en `data/user_settings.json` (creado por `config.setup_directories()`)
+- El archivo JSON se crea al primer `save()`; si no existe `load()` retorna `_DEFAULTS`
+- `load()` hace merge con `_DEFAULTS` para preservar compatibilidad con versiones futuras
+- `main_application.load_stylesheet(theme_key)` aplica el CSS con `QApplication.instance().setStyleSheet()`
+- Al arrancar, `main_application.__init__` lee el tema guardado antes de mostrar ninguna ventana
+- Discard revierte al tema que estaba activo cuando se abrió el panel (no al guardado en disco)
+- Los 5 CSS de temas son generados por `scripts/generate_themes.py` a partir de `styles.css`
+
+### Flujo de tema en runtime
+
+```
+Usuario selecciona tema → theme_selected(key) signal
+  → SettingsPresenter._handle_theme_selected()
+    → main_app.load_stylesheet(key)        # aplica CSS globalmente, preview inmediato
+    → view.update_preview(name, accent)    # actualiza panel derecho
+
+Usuario presiona Save
+  → settings_service.save({"theme": key}) # persiste en JSON
+  → _original_theme_key = key             # actualiza el punto de revert
+
+Usuario presiona Discard
+  → main_app.load_stylesheet(_original_theme_key)  # revierte
+  → view.set_current_theme(_original_theme_key)    # resalta el item correcto
+```
+
+---
+
 ## Tests — Estado Actual
 
-**Total: 316 tests, 100% passing.**
+**Total: 422 tests, 100% passing.**
 
 | Archivo de test                  | Módulo cubierto                     | Tests |
 |----------------------------------|-------------------------------------|-------|
@@ -222,156 +372,88 @@ src/
 | `test_attendance_service.py`     | `services/attendance_service.py`    | 46    |
 | `test_payment_service.py`        | `services/payment_service.py`       | 43    |
 | `test_membership_service.py`     | `services/membership_service.py`    | 94    |
+| `test_class_service.py`          | `services/class_service.py`         | 75    |
+| `test_settings_service.py`       | `services/settings_service.py`      | 31    |
 | `conftest.py`                    | Fixtures compartidas                | —     |
 
 **Estrategia de mocking:**
 - `db_manager` parcheado con `unittest.mock.patch('src.services.*.db_manager')`.
+- `settings_service`: `_SETTINGS_FILE` y `config` parcheados; tests de CSS leen archivos reales.
 - Helpers estáticos puros testeados directamente sin mocks.
 - Ejecutar con: `python -m pytest tests/ -v`
 
 ---
 
-## Historial de Cambios
+## Permisos — Estado Actual
 
-### Módulo Attendance — Historial completo
-
-#### Implementación de `attendance_view.py` ✅
-- Señales: `checkin_requested`, `checkout_requested`, `date_changed`, `today_requested`
-- `initialize_components()`: conecta botones, inicializa `date_filter` a `QDate.currentDate()`, asigna ícono a `btn_close`
-- `get_search_term()`: retorna `input_search.text().strip() or None`
-- `get_selected_attendance_id()`: lee UUID desde `Qt.ItemDataRole.UserRole` de celda 0
-- `get_current_date()`: retorna `date_filter.date().toPyDate()`
-- `populate_table()`: 6 columnas, horas en formato 12h hora local (`.astimezone()`), Duration calculada, UUID guardado en `UserRole`
-- `set_user_info()`: escribe en `label_user_name` y `label_user_role`
-
-#### Implementación de `attendance_presenter.py` ✅
-- `_connect_signals()`: conecta los 4 signals de la vista
-- `_handle_load_attendance(filter_date)`: verifica permiso READ, llama service, popula tabla
-- `_handle_checkin()`: busca miembro → toma `members[0]` → `check_in(member.id, current_user.id)` → recarga tabla
-- `_handle_checkout()`: lee selección → verifica permiso → `check_out(attendance_id)` → recarga tabla
-- `_handle_date_changed(qdate)`: recarga tabla con la fecha seleccionada
-- `_handle_today()`: resetea `date_filter` (el `dateChanged` dispara recarga automáticamente)
-- `_load_user_information()`: construye dict y llama `view.set_user_info()`
-
-#### Bug Fix — Import incorrecto de permisos ✅
-- Reemplazado `from tests.test_permissions import PermissionService, Permissions`
-- Por `from src.domain.permissions_service import PermissionService` y `from src.domain.permissions_definitions import Permissions`
-
-#### Bug Fix — `created_by` enviaba username en lugar de UUID ✅
-- `check_in(member_id, self._current_user.username)` → `check_in(member.id, self._current_user.id)`
-- La columna `created_by` en Supabase es de tipo `uuid`, no acepta strings de texto
-
-#### Bug Fix — `get_attendance_by_date` retornaba lista vacía ✅
-- **Causa:** comparación de strings sin timezone. `start/end` eran naive, `check_in_time` de Supabase tiene `+00:00`
-- **Solución:** agregar `select_range()` a `DatabaseManager` (usa `.gte()` / `.lte()` de Supabase). El filtrado se hace en la BD, no en Python
-
-#### Bug Fix — Registros no aparecían por diferencia UTC vs hora local ✅
-- **Causa:** `datetime.combine(filter_date, ...).replace(tzinfo=timezone.utc)` asumía que la fecha local == fecha UTC
-- En Ciudad Juárez (UTC-6), un check-in a las 7PM local se guarda como `01:xx UTC del día siguiente`
-- **Solución:** detectar timezone local con `datetime.now().astimezone().tzinfo` y convertir los límites del día local a UTC antes de enviar a Supabase
-- Mismo fix aplicado en `_validate_no_open_checkin()`
-
-#### Bug Fix — Horas mostradas en UTC en lugar de hora local ✅
-- `record.check_in_time.strftime("%H:%M")` → `record.check_in_time.astimezone().strftime("%I:%M %p")`
-- `.astimezone()` convierte el datetime UTC al timezone local del sistema
-- Formato cambiado a 12h (`%I:%M %p` → `07:41 PM`)
-
-#### Actualización de tests — `test_attendance_service.py` ✅
-- `make_attendance_row()` y `make_closed_row()`: timestamps actualizados a formato ISO con `+00:00`
-- `TestGetAttendanceByDate`: migrado de `mock_db.select` a `mock_db.select_range`
-- Eliminado `test_excludes_records_from_other_dates` (ya no aplica — el filtrado lo hace Supabase)
-- Agregado `test_filters_by_check_in_time_column`: verifica que `select_range` recibe `column="check_in_time"` y timestamps con timezone
-- `TestCheckIn`: migrado de `mock_db.select` a `mock_db.select_range` en todos los tests de validación
+| Grupo | Permisos | Roles |
+|---|---|---|
+| Members | READ | ADMIN, RECEPTIONIST, INSTRUCTOR, ACCOUNTANT |
+| Members | CREATE, UPDATE | ADMIN, RECEPTIONIST |
+| Members | DELETE | ADMIN |
+| Attendance | READ | ADMIN, RECEPTIONIST, INSTRUCTOR |
+| Attendance | CREATE | ADMIN, RECEPTIONIST |
+| Plans | CREATE, UPDATE | ADMIN |
+| Memberships | READ | ADMIN, RECEPTIONIST, ACCOUNTANT |
+| Memberships | CREATE, UPDATE, DELETE | ADMIN, RECEPTIONIST |
+| Payments | READ | ADMIN, RECEPTIONIST, ACCOUNTANT |
+| Payments | CREATE, UPDATE | ADMIN, RECEPTIONIST |
+| Classes | READ | ADMIN, RECEPTIONIST, INSTRUCTOR |
+| Classes | CREATE, UPDATE | ADMIN |
+| Schedules | READ | ADMIN, RECEPTIONIST, INSTRUCTOR |
+| Schedules | CREATE, UPDATE | ADMIN |
+| Enrollments | READ | ADMIN, RECEPTIONIST, INSTRUCTOR |
+| Enrollments | CREATE, UPDATE | ADMIN, RECEPTIONIST |
 
 ---
 
-### Bug Fix — Login bloqueante (KeyboardInterrupt en arranque en frío) ✅
-**Archivos:** `src/presenters/login_presenter.py`, `src/views/login_view.py`
+## Sidebar — Estado de Conexión
 
-**Causa raíz:** `_handle_login()` corría en el UI thread. En el primer arranque del día,
-`bcrypt.checkpw()` + la petición de red a Supabase tardaban varios segundos bloqueando
-el event loop de Qt, que interpretaba la espera como `KeyboardInterrupt`.
-
-**Solución:** QThread worker pattern.
-- Agregada clase `LoginWorker(QThread)` en `login_presenter.py`.
-  - `run()` ejecuta `auth_service.login()` en background.
-  - Emite `login_success(User)` o `login_failed(str)` al terminar.
-- `LoginPresenter._handle_login()` instancia el worker, conecta señales y lo arranca.
-- `_on_worker_success()` / `_on_worker_failed()` manejan el resultado en el UI thread.
-- Agregado `set_loading(bool)` en `LoginView`:
-  - Deshabilita `btn_login`, `input_username`, `input_password` durante el login.
-  - Cambia texto del botón a `"Logging in..."` mientras espera.
+| Botón | Módulo | Estado |
+|---|---|---|
+| `btn_members` | Members | Conectado ✅ |
+| `btn_attendance` | Attendance | Conectado ✅ |
+| `btn_payments` | Payments | Conectado ✅ |
+| `btn_memberships` | Memberships | Conectado ✅ |
+| `btn_classes` | Classes | Conectado ✅ |
+| `btn_settings` | Settings | Conectado ✅ |
+| `btn_dashboard` | Dashboard | Sin implementar |
+| `btn_instructors` | Instructors | Sin implementar |
+| `btn_equipment` | Equipment | Sin implementar |
+| `btn_reports` | Reports | Sin implementar |
+| `btn_logout` | Logout | Sin implementar |
 
 ---
 
-### Módulo Members — Historial completo
+## Historial de Cambios Recientes
 
-#### Sesión inicial de análisis
-- Análisis completo del proyecto y feedback del módulo Members.
-- Identificados 22 problemas entre bugs críticos, lógica incorrecta y deuda técnica.
+### Módulo Classes — Implementado ✅ (sesión actual)
+- Servicio con 15 métodos públicos: CRUD clases, CRUD horarios, CRUD inscripciones
+- Vista con 3 tabs: Classes / Schedules / Enrollments
+- Validación de capacidad máxima al inscribir (llama `get_enrollment_count` antes del insert)
+- Reutiliza `MemberSelectDialog` para búsqueda de miembro en inscripciones
+- 75 tests, 100% passing
 
-#### Paso 2 — Conectar `btn_clear` ✅
-- Agregada señal `clear_action_requested = pyqtSignal()` en la vista.
-- Conectado `btn_clear.clicked` a `clear_action_requested.emit`.
-- Conectada la señal en el presenter a `_handle_load_all()`.
+### Módulo Settings — Implementado ✅ (sesión actual)
+- 5 temas dark generados desde `styles.css` via `scripts/generate_themes.py`
+- Preview en vivo al seleccionar: `QApplication.setStyleSheet()` se llama instantáneamente
+- Persistencia en `data/user_settings.json`; se carga al arrancar antes de mostrar ninguna ventana
+- `btn_settings` conectado en sidebar; `btn_close` con ícono `IMG-Settings.png`
+- 31 tests, 100% passing
 
-#### Paso 1 — Corregir género en `set_form_data()` ✅
-- Reemplazado `setCurrentText(data.get("gender"))` por `findData()` + `setCurrentIndex()`.
-
-#### Paso 5 — Tratar "not found" como info ✅
-- Agregado `StatusType.INFO` al enum y estilo azul en `status_bar_styles.py`.
-- Búsqueda sin resultados muestra INFO en lugar de ERROR.
-
-#### Paso 6 — Poblar `label_user_name` y `label_user_role` ✅
-- Método `_load_user_information()` en presenter + `set_user_info(dict)` en vista.
-
-#### Paso 8 — Control UI para mostrar/ocultar inactivos ✅
-- `QCheckBox check_show_inactives` + señal `show_inactive_requested`.
-
-#### Paso 10 — Validar permiso `MEMBERS_READ` al cargar tabla ✅
-- Verificación de `PermissionService.has_permission(MEMBERS_READ)` en `_handle_load_all()`.
-
-#### Paso 7 — Mover filtro `is_active` al query de Supabase ✅
-- `search()` en `database/manager.py` acepta `filters` opcionales.
-- `search_members()` pasa `filters={'is_active': True}` en lugar de filtrar en Python.
-
-#### Paso 11 — Diálogo de confirmación antes de actualizar ✅
-- `QMessageBox.question()` antes de `update_member()`.
-
-#### Paso 12 — Corregir colores de tabla para tema oscuro ✅
-- `set_format.py`: colores alternados `#2d2d2d` / `#353535`.
-
-#### Paso 13 — Corregir ruta de ícono rota en `member_view.ui` ✅
-- Eliminada ruta absoluta a otro proyecto. `btn_close` ahora muestra texto `"Close"`.
-
-#### Paso 14 — Estandarizar idioma a inglés ✅
-- Traducidos todos los botones del sidebar en `main_window.ui`.
-
-#### Paso 16 — Sistema de íconos (Qt Resource System base64) ✅
-- `scripts/build_resources.py` embebe íconos de `src/assets/icons/` como base64.
-- `resources_rc.py` expone `get_icon(path) -> QIcon`. Asignados 12 íconos.
-- `resources_rc.py` en `.gitignore` (archivo generado).
-
-#### Paso E — `date_birthday` min/max + `get_form_data()` ✅
-- `minimumDate` = 1900-01-01, `maximumDate` = hoy.
-- `get_form_data()` devuelve `None` cuando fecha == minimumDate.
-
-#### Paso F — Eliminar código muerto + import huérfano ✅
-- Eliminado bloque comentado `setSectionResizeMode/setColumnWidth` + import `QHeaderView`.
-
-#### Paso G — Centralizar mensajes en `ErrorMessages` ✅
-- 13 constantes en sección `# Members module` de `error_messages.py`.
-- Cero strings inline en `member_presenter.py`.
+### Documentación y Stack — Actualizado ✅ (sesión actual)
+- `CONTEXT.md` corregido: `supabase-py` → `psycopg2-binary`, referencias a Supabase eliminadas
+- `README.md` reescrito: instrucciones de instalación con PostgreSQL local, eliminadas referencias Supabase
+- Verificado: código fuente 100% consistente en PostgreSQL via psycopg2; sin rastro de SQLite ni Supabase
 
 ---
 
 ## Próximos Pasos
 
-| Módulo | Botón en sidebar | Prioridad |
-|---|---|---|
-| Dashboard | `btn_dashboard` | Alta — requiere datos de Memberships y Payments para ser útil |
-| Instructors | `btn_instructors` | Media |
-| Classes | `btn_classes` | Media |
-| Equipment | `btn_equipment` | Baja |
-| Reports | `btn_reports` | Baja |
-| Settings | `btn_settings` | Baja |
+| Módulo | Botón en sidebar | Prioridad | Notas |
+|---|---|---|---|
+| Dashboard | `btn_dashboard` | Alta | Datos fuente (Memberships, Payments, Attendance) ya disponibles |
+| Logout | `btn_logout` | Alta | Cerrar sesión y volver al login |
+| Instructors | `btn_instructors` | Media | Dataclass `Instructor` ya existe en `models.py` |
+| Equipment | `btn_equipment` | Baja | Dataclass `Equipment` ya existe en `models.py` |
+| Reports | `btn_reports` | Baja | Requiere definir qué reportes generar |

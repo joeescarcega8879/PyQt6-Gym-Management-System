@@ -14,6 +14,8 @@ class MainView(QMainWindow):
     form_attendance_requested  = pyqtSignal()
     form_payments_requested    = pyqtSignal()
     form_memberships_requested = pyqtSignal()
+    form_classes_requested     = pyqtSignal()
+    form_settings_requested    = pyqtSignal()
     
     def __init__(self):
         super(MainView, self).__init__()
@@ -32,6 +34,8 @@ class MainView(QMainWindow):
         self.btn_attendance.clicked.connect(self.form_attendance_requested.emit)
         self.btn_payments.clicked.connect(self.form_payments_requested.emit)
         self.btn_memberships.clicked.connect(self.form_memberships_requested.emit)
+        self.btn_classes.clicked.connect(self.form_classes_requested.emit)
+        self.btn_settings.clicked.connect(self.form_settings_requested.emit)
         
         self.btn_colapse.clicked.connect(self.toggle_sidebar_frame)
 

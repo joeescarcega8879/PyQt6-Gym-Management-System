@@ -111,6 +111,50 @@ class ErrorMessages:
     PAYMENTS_UPDATE_FAILED        = "Failed to update payment. Please try again."
     PAYMENTS_UNEXPECTED_ERROR     = "An unexpected error occurred. Please try again."
 
+    # Classes module — Class definitions
+    CLASSES_NO_PERMISSION_READ   = "You do not have permission to view classes"
+    CLASSES_NO_PERMISSION_CREATE = "You do not have permission to create classes"
+    CLASSES_NO_PERMISSION_UPDATE = "You do not have permission to update classes"
+    CLASSES_NAME_REQUIRED        = "Class name is required"
+    CLASSES_INVALID_DURATION     = "Duration must be at least 1 minute"
+    CLASSES_INVALID_CAPACITY     = "Capacity must be greater than zero"
+    CLASSES_NO_SELECTION         = "Please select a class from the table"
+    CLASSES_CREATED              = "Class created successfully"
+    CLASSES_CREATION_FAILED      = "Failed to create class. Please try again."
+    CLASSES_UPDATED              = "Class updated successfully"
+    CLASSES_UPDATE_FAILED        = "Failed to update class. Please try again."
+    CLASSES_STATUS_UPDATED       = "Class status updated successfully"
+    CLASSES_STATUS_UPDATE_FAILED = "Failed to update class status. Please try again."
+    CLASSES_UNEXPECTED_ERROR     = "An unexpected error occurred. Please try again."
+
+    # Classes module — Schedules
+    SCHEDULES_NO_PERMISSION_CREATE = "You do not have permission to create schedules"
+    SCHEDULES_NO_PERMISSION_UPDATE = "You do not have permission to update schedules"
+    SCHEDULES_CLASS_REQUIRED       = "Please select a class for the schedule"
+    SCHEDULES_INVALID_TIME         = "End time must be after start time"
+    SCHEDULES_NO_SELECTION         = "Please select a schedule from the table"
+    SCHEDULES_CREATED              = "Schedule created successfully"
+    SCHEDULES_CREATION_FAILED      = "Failed to create schedule. Please try again."
+    SCHEDULES_UPDATED              = "Schedule updated successfully"
+    SCHEDULES_UPDATE_FAILED        = "Failed to update schedule. Please try again."
+    SCHEDULES_STATUS_UPDATED       = "Schedule status updated successfully"
+    SCHEDULES_STATUS_UPDATE_FAILED = "Failed to update schedule status. Please try again."
+    SCHEDULES_UNEXPECTED_ERROR     = "An unexpected error occurred. Please try again."
+
+    # Classes module — Enrollments
+    ENROLLMENTS_NO_PERMISSION_CREATE = "You do not have permission to enroll members"
+    ENROLLMENTS_NO_PERMISSION_UPDATE = "You do not have permission to update enrollments"
+    ENROLLMENTS_MEMBER_NOT_FOUND     = "No active member found with that code or name"
+    ENROLLMENTS_SCHEDULE_REQUIRED    = "Please select a schedule to enroll into"
+    ENROLLMENTS_ALREADY_ENROLLED     = "This member is already enrolled in this class"
+    ENROLLMENTS_CLASS_FULL           = "This class has reached its maximum capacity"
+    ENROLLMENTS_NO_SELECTION         = "Please select an enrollment from the table"
+    ENROLLMENTS_ENROLLED             = "Member enrolled successfully"
+    ENROLLMENTS_ENROLL_FAILED        = "Failed to enroll member. Please try again."
+    ENROLLMENTS_STATUS_UPDATED       = "Enrollment status updated successfully"
+    ENROLLMENTS_STATUS_UPDATE_FAILED = "Failed to update enrollment status. Please try again."
+    ENROLLMENTS_UNEXPECTED_ERROR     = "An unexpected error occurred. Please try again."
+
     @staticmethod
     def log_and_mask_error(error: Exception, context: str, user_message: Optional[str] = None) -> str:
         """

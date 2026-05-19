@@ -11,3 +11,5 @@ class MainPresenter:
         self.view.form_attendance_requested.connect(self.main_app.open_attendance_form)
         self.view.form_payments_requested.connect(self.main_app.open_payments_form)
         self.view.form_memberships_requested.connect(self.main_app.open_memberships_form)
+        self.view.form_classes_requested.connect(self.main_app.open_classes_form)
+        self.view.form_settings_requested.connect(self.main_app.open_settings_form)

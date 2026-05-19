@@ -28,3 +28,18 @@ class Permissions:
     PAYMENTS_CREATE = "payments.create"
     PAYMENTS_READ   = "payments.read"
     PAYMENTS_UPDATE = "payments.update"
+
+    # Permissions related to classes
+    CLASSES_CREATE = "classes.create"
+    CLASSES_READ   = "classes.read"
+    CLASSES_UPDATE = "classes.update"
+
+    # Permissions related to class schedules
+    SCHEDULES_CREATE = "schedules.create"
+    SCHEDULES_READ   = "schedules.read"
+    SCHEDULES_UPDATE = "schedules.update"
+
+    # Permissions related to class enrollments
+    ENROLLMENTS_CREATE = "enrollments.create"
+    ENROLLMENTS_READ   = "enrollments.read"
+    ENROLLMENTS_UPDATE = "enrollments.update"

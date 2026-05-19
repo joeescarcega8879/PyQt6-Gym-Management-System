@@ -14,6 +14,8 @@ from src.views.member_view import MemberView
 from src.views.attendance_view import AttendanceView
 from src.views.payment_view import PaymentView
 from src.views.membership_view import MembershipView
+from src.views.class_view import ClassView
+from src.views.settings_view import SettingsView
 
 from src.presenters.login_presenter import LoginPresenter
 from src.presenters.main_presenter import MainPresenter
@@ -21,6 +23,10 @@ from src.presenters.member_presenter import MemberPresenter
 from src.presenters.attendance_presenter import AttendancePresenter
 from src.presenters.payment_presenter import PaymentPresenter
 from src.presenters.membership_presenter import MembershipPresenter
+from src.presenters.class_presenter import ClassPresenter
+from src.presenters.settings_presenter import SettingsPresenter
+
+from src.services.settings_service import settings_service
 
 import src.assets.resources_rc  # noqa — loads embedded icons into memory
 
@@ -29,7 +35,10 @@ class MainApplication:
     def __init__(self):
         self.setup_logging()
         self.logger = logging.getLogger(__name__)
-        self.load_stylesheet()
+        # Load saved theme preference before showing any UI
+        saved = settings_service.load()
+        theme_key = saved.data.get("theme", "dark_blue") if saved.success else "dark_blue"
+        self.load_stylesheet(theme_key)
         self._init_login()
 
     def setup_logging(self) -> None:
@@ -45,20 +54,32 @@ class MainApplication:
             ]
         )
     
-    def load_stylesheet(self) -> None:
-        """Carga y aplica el stylesheet CSS global"""
+    def load_stylesheet(self, theme_key: str = "dark_blue") -> None:
+        """
+        Loads and applies the CSS stylesheet for the given theme key.
+
+        Tries src/assets/themes/<theme_key>.css first.
+        Falls back to src/assets/styles.css if the theme file is missing.
+
+        Args:
+            theme_key: Key from AVAILABLE_THEMES (e.g. 'dark_blue', 'dark_green').
+        """
         try:
-            css_path = os.path.join(
-                os.path.dirname(__file__), 
-                'src', 'assets', 'styles.css'
-            )
-            
+            # Prefer the theme-specific file
+            result = settings_service.load_theme_css(theme_key)
+            if result.success:
+                QApplication.instance().setStyleSheet(result.data)
+                self.logger.info(f"Theme '{theme_key}' loaded successfully")
+                return
+
+            # Hard fallback: read the original styles.css
+            css_path = os.path.join(os.path.dirname(__file__), 'src', 'assets', 'styles.css')
             if os.path.exists(css_path):
                 with open(css_path, 'r', encoding='utf-8') as f:
                     QApplication.instance().setStyleSheet(f.read())
-                self.logger.info("Stylesheet loaded successfully")
+                self.logger.warning(f"Theme '{theme_key}' not found — loaded default styles.css")
             else:
-                self.logger.warning(f"Stylesheet not found at: {css_path}")
+                self.logger.warning("No stylesheet found")
         except Exception as e:
             self.logger.error(f"Failed to load stylesheet: {e}")
         
@@ -115,6 +136,28 @@ class MainApplication:
         mdi_sub_window = QMdiSubWindow()
 
         self.main_view.open_child_form(self.membership_view, mdi_sub_window)
+
+    def open_classes_form(self) -> None:
+        self.logger.info("Opening classes form")
+
+        self.class_view = ClassView()
+        self.class_presenter = ClassPresenter(self.class_view, self, self.status_bar_controller.show_message, self.current_user)
+
+        mdi_sub_window = QMdiSubWindow()
+
+        self.main_view.open_child_form(self.class_view, mdi_sub_window)
+
+    def open_settings_form(self) -> None:
+        self.logger.info("Opening settings form")
+
+        self.settings_view = SettingsView()
+        self.settings_presenter = SettingsPresenter(
+            self.settings_view, self, self.status_bar_controller.show_message, self.current_user
+        )
+
+        mdi_sub_window = QMdiSubWindow()
+
+        self.main_view.open_child_form(self.settings_view, mdi_sub_window)
 
 def main():
     app = QApplication(sys.argv)

@@ -28,4 +28,19 @@ PERMISSIONS = {
     Permissions.PAYMENTS_CREATE: {UserRole.ADMIN, UserRole.RECEPTIONIST},
     Permissions.PAYMENTS_UPDATE: {UserRole.ADMIN, UserRole.RECEPTIONIST},
 
+    # Permissions related to classes
+    Permissions.CLASSES_READ:   {UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.INSTRUCTOR},
+    Permissions.CLASSES_CREATE: {UserRole.ADMIN},
+    Permissions.CLASSES_UPDATE: {UserRole.ADMIN},
+
+    # Permissions related to class schedules
+    Permissions.SCHEDULES_READ:   {UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.INSTRUCTOR},
+    Permissions.SCHEDULES_CREATE: {UserRole.ADMIN},
+    Permissions.SCHEDULES_UPDATE: {UserRole.ADMIN},
+
+    # Permissions related to class enrollments
+    Permissions.ENROLLMENTS_READ:   {UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.INSTRUCTOR},
+    Permissions.ENROLLMENTS_CREATE: {UserRole.ADMIN, UserRole.RECEPTIONIST},
+    Permissions.ENROLLMENTS_UPDATE: {UserRole.ADMIN, UserRole.RECEPTIONIST},
+
 }
