@@ -61,6 +61,11 @@ data/
 *.sqlite3
 
 # ============================================
+# Reportes exportados (generados por el módulo Reports)
+# ============================================
+exports/
+
+# ============================================
 # Sistema operativo
 # ============================================
 .DS_Store
@@ -84,8 +89,15 @@ backups/
 # Docs (internal notes, not for version control)
 # ============================================
 docs/
+# Exception: the SQL schema is required by the README setup instructions
+!docs/database_schema.sql
 
 # ============================================
 # Generated asset files (rebuild with scripts/build_resources.py)
 # ============================================
 # src/assets/resources_rc.py  # now tracked in version control
+
+# ============================================
+# Claude Code — local agent config/state, not for version control
+# ============================================
+.claude/

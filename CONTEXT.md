@@ -24,21 +24,26 @@ src/
 │   ├── icons/              # 12 íconos PNG embebidos como base64
 │   ├── resources_rc.py     # Generado — get_icon(path) -> QIcon  [.gitignore]
 │   └── themes/             # 5 archivos CSS de temas (dark_blue, green, purple, orange, cyan)
-├── config/                 # Lectura de .env (Settings), DATA_DIR, LOGS_DIR
+├── config/                 # Lectura de .env (Settings), DATA_DIR, LOGS_DIR, EXPORTS_DIR
 ├── database/               # Singleton DatabaseManager — SQL puro via psycopg2
 ├── domain/                 # Permisos por rol (PermissionService, Permissions)
 ├── models/                 # Dataclasses (Member, User, Class, etc.) y enums
 ├── presenters/             # Lógica de negocio UI (MemberPresenter, ClassPresenter, etc.)
 ├── services/               # Lógica de negocio pura (MemberService, SettingsService, etc.)
-├── utils/                  # Helpers: StatusBar, SetFormat, ErrorMessages
+├── utils/                  # Helpers: StatusBar, SetFormat, ErrorMessages, PdfExporter
 └── views/
     ├── ui/                 # Archivos .ui de Qt Designer
     └── widgets/            # Componentes reutilizables (MemberSelectDialog)
 data/
 └── user_settings.json      # Preferencias de usuario — persistencia de tema [.gitignore]
+exports/                    # PDFs generados por el módulo Reports [.gitignore]
+docs/
+└── database_schema.sql     # Único archivo de docs/ versionado (el resto es [.gitignore])
 scripts/
 ├── build_resources.py      # Embebe íconos en resources_rc.py
-└── generate_themes.py      # Genera los 5 CSS de temas desde styles.css
+├── generate_themes.py      # Genera los 5 CSS de temas desde styles.css
+├── seed_members.py         # Datos de ejemplo para desarrollo local
+└── seed_attendance.py      # Datos de ejemplo para desarrollo local
 ```
 
 ---
@@ -527,7 +532,7 @@ Usuario presiona Discard
 
 ## Tests — Estado Actual
 
-**Total: 580 tests, 100% passing.**
+**Total: 581 tests, 100% passing.**
 
 | Archivo de test                  | Módulo cubierto                     | Tests |
 |----------------------------------|-------------------------------------|-------|
@@ -536,7 +541,7 @@ Usuario presiona Discard
 | `test_permissions.py`            | `domain/permissions*.py`            | 22    |
 | `test_auth_service.py`           | `services/auth_service.py`          | 31    |
 | `test_attendance_service.py`     | `services/attendance_service.py`    | 52    |
-| `test_payment_service.py`        | `services/payment_service.py`       | 43    |
+| `test_payment_service.py`        | `services/payment_service.py`       | 44    |
 | `test_membership_service.py`     | `services/membership_service.py`    | 94    |
 | `test_class_service.py`          | `services/class_service.py`         | 75    |
 | `test_settings_service.py`       | `services/settings_service.py`      | 31    |
@@ -607,7 +612,16 @@ Usuario presiona Discard
 
 ## Historial de Cambios Recientes
 
-### Módulo Reports — Implementado ✅ (sesión actual)
+### Verificación end-to-end contra PostgreSQL real + limpieza del repo ✅ (sesión actual)
+- Se levantó PostgreSQL 18 local (cluster ya instalado en el sistema), se creó la base `Gym-System` y se cargó `docs/database_schema.sql` completo desde pgAdmin (15 tablas, índices, triggers, seed data con usuario `admin`/`admin123`)
+- `.env` creado (no versionado) con las credenciales reales; `.env.example` agregado al repo como plantilla
+- Recorrido completo probado contra la BD real (no mocks): login → crear miembro → registrar pago → check-in → Dashboard → los 4 tabs de Reports → exportar PDF real (verificada la firma `%PDF-`) — todo vía `main_application.MainApplication` en modo Qt `offscreen`
+- **Bug real encontrado y corregido**: `PaymentService.get_payments()` usaba `date_to.isoformat()` (sin hora) para filtrar la columna `payment_date` (`TIMESTAMPTZ`), lo que excluía silenciosamente todos los pagos del día actual — un pago de $800 registrado a las 13:xx no aparecía ni en el Dashboard ("Revenue This Month") ni en el tab Financial de Reports, ambos mostrando `$0.00`. Corregido expandiendo `date_to` al final del día local antes de convertir a UTC, mismo patrón que ya usaba `AttendanceService`. Bug preexistente (afectaba Dashboard desde antes), nunca detectado por los tests unitarios porque mockean `db_manager` por completo — solo lo reveló una prueba real contra base de datos.
+- Limpieza de archivos innecesarios para GitHub: `.claude/settings.local.json` (config local de otra máquina, con rutas de Windows), `docs/PROJECT_STRUCTURE.md`/`QUICKSTART.md` (ya borrados del disco, faltaba destrackearlos), `test_connection.py` (script de diagnóstico manual en la raíz, no parte de la app ni de la suite de tests), `src/config/logger_config.py` y `src/domain/roles.py` (código muerto, sin ningún import en el proyecto)
+- `.gitignore` actualizado: `exports/` (nuevo directorio de PDFs del módulo Reports), `.claude/settings.local.json`, y excepción explícita `!docs/database_schema.sql` (el resto de `docs/` sigue ignorado, pero el schema es necesario para las instrucciones de instalación del README)
+- 1 test nuevo (`test_date_range_spans_full_local_days`) + 1 test actualizado en `test_payment_service.py` — 581 tests totales, 100% passing
+
+### Módulo Reports — Implementado ✅
 - Único módulo pendiente del proyecto — ahora los 11 módulos están completos
 - `ReportsService`: agregación pura (mismo patrón que `DashboardService`), 4 métodos públicos (`get_financial_report`, `get_membership_report`, `get_attendance_report`, `get_operational_report`), reutiliza payment/membership/attendance/class/equipment/instructor service
 - Nuevo método `AttendanceService.get_attendance_by_range()` — el servicio solo tenía consulta de un día

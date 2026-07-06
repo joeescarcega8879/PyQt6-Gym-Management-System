@@ -1,6 +1,6 @@
 -- ============================================
 -- SISTEMA DE GESTIÓN DE GIMNASIO - SCHEMA SQL
--- Base de datos: PostgreSQL (Supabase)
+-- Base de datos: PostgreSQL
 -- ============================================
 
 -- Habilitar extensiones necesarias

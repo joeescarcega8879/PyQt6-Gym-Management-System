@@ -1,7 +1,7 @@
 from __future__ import annotations
 import logging
 from typing import Optional
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from src.database import db_manager
 from src.models import Payment, Member
 from src.models.enums import PaymentMethod, PaymentStatus
@@ -43,11 +43,18 @@ class PaymentService:
                 filters['payment_method'] = payment_method.value
 
             if date_from and date_to:
+                # payment_date is TIMESTAMPTZ — a bare date.isoformat() for date_to would mean
+                # midnight, excluding same-day payments logged later that day. Expand the range
+                # to the full local day before converting to UTC (same pattern as AttendanceService).
+                local_tz = datetime.now().astimezone().tzinfo
+                start = datetime.combine(date_from, datetime.min.time()).replace(tzinfo=local_tz).astimezone(timezone.utc).isoformat()
+                end = datetime.combine(date_to, datetime.max.time()).replace(tzinfo=local_tz).astimezone(timezone.utc).isoformat()
+
                 rows = db_manager.select_range(
                     table=_TABLE,
                     column='payment_date',
-                    start=date_from.isoformat(),
-                    end=date_to.isoformat(),
+                    start=start,
+                    end=end,
                     columns=_PAYMENT_COLUMNS,
                     joins=_PAYMENT_JOIN,
                     filters=filters if filters else None,

@@ -236,8 +236,20 @@ class TestGetPayments:
         self.svc.get_payments(date_from=date(2026, 4, 1), date_to=date(2026, 4, 30))
         mock_db.select_range.assert_called_once()
         call_kwargs = mock_db.select_range.call_args.kwargs
-        assert call_kwargs['start'] == '2026-04-01'
-        assert call_kwargs['end'] == '2026-04-30'
+        assert call_kwargs['start'].startswith('2026-03-31') or call_kwargs['start'].startswith('2026-04-01')
+        assert call_kwargs['end'].startswith('2026-04-30') or call_kwargs['end'].startswith('2026-05-01')
+        assert '+00:00' in call_kwargs['start']
+        assert '+00:00' in call_kwargs['end']
+
+    @patch("src.services.payment_service.db_manager")
+    def test_date_range_spans_full_local_days(self, mock_db):
+        """date_to must include the entire day (not just midnight) to catch same-day payments."""
+        mock_db.select_range.return_value = []
+        self.svc.get_payments(date_from=date(2026, 4, 1), date_to=date(2026, 4, 1))
+        call_kwargs = mock_db.select_range.call_args.kwargs
+        start_dt = datetime.fromisoformat(call_kwargs['start'])
+        end_dt = datetime.fromisoformat(call_kwargs['end'])
+        assert (end_dt - start_dt).total_seconds() > 23 * 3600
 
     @patch("src.services.payment_service.db_manager")
     def test_queries_payments_table_with_member_join(self, mock_db):
