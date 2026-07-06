@@ -211,4 +211,4 @@ Los 11 módulos planeados están completos. Sin pendientes identificados actualm
 
 ## Licencia
 
-Proyecto de práctica educativa. No recomendado para producción sin pruebas exhaustivas de seguridad.
+Este proyecto está bajo la licencia MIT — ver el archivo [LICENSE](LICENSE) para más detalles.
