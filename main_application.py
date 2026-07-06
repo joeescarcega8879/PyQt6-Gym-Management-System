@@ -10,21 +10,27 @@ from src.utils.status_type import StatusType
 
 from src.views.login_view import LoginView
 from src.views.main_view import MainView
+from src.views.dashboard_view import DashboardView
 from src.views.member_view import MemberView
 from src.views.attendance_view import AttendanceView
 from src.views.payment_view import PaymentView
 from src.views.membership_view import MembershipView
 from src.views.class_view import ClassView
 from src.views.settings_view import SettingsView
+from src.views.instructor_view import InstructorView
+from src.views.equipment_view import EquipmentView
 
 from src.presenters.login_presenter import LoginPresenter
 from src.presenters.main_presenter import MainPresenter
+from src.presenters.dashboard_presenter import DashboardPresenter
 from src.presenters.member_presenter import MemberPresenter
 from src.presenters.attendance_presenter import AttendancePresenter
 from src.presenters.payment_presenter import PaymentPresenter
 from src.presenters.membership_presenter import MembershipPresenter
 from src.presenters.class_presenter import ClassPresenter
 from src.presenters.settings_presenter import SettingsPresenter
+from src.presenters.instructor_presenter import InstructorPresenter
+from src.presenters.equipment_presenter import EquipmentPresenter
 
 from src.services.settings_service import settings_service
 
@@ -97,6 +103,24 @@ class MainApplication:
         
         self.login_view.close()
 
+    def logout(self) -> None:
+        self.logger.info(f"User '{self.current_user.username}' logging out")
+
+        self.main_view.close()
+        self.current_user = None
+
+        self._init_login()
+
+    def open_dashboard_form(self) -> None:
+        self.logger.info("Opening dashboard form")
+
+        self.dashboard_view = DashboardView()
+        self.dashboard_presenter = DashboardPresenter(self.dashboard_view, self, self.status_bar_controller.show_message, self.current_user)
+
+        mdi_sub_window = QMdiSubWindow()
+
+        self.main_view.open_child_form(self.dashboard_view, mdi_sub_window)
+
     def open_members_form(self) -> None:
         self.logger.info("Opening members form")
         
@@ -158,6 +182,26 @@ class MainApplication:
         mdi_sub_window = QMdiSubWindow()
 
         self.main_view.open_child_form(self.settings_view, mdi_sub_window)
+
+    def open_instructors_form(self) -> None:
+        self.logger.info("Opening instructors form")
+
+        self.instructor_view = InstructorView()
+        self.instructor_presenter = InstructorPresenter(self.instructor_view, self, self.status_bar_controller.show_message, self.current_user)
+
+        mdi_sub_window = QMdiSubWindow()
+
+        self.main_view.open_child_form(self.instructor_view, mdi_sub_window)
+
+    def open_equipment_form(self) -> None:
+        self.logger.info("Opening equipment form")
+
+        self.equipment_view = EquipmentView()
+        self.equipment_presenter = EquipmentPresenter(self.equipment_view, self, self.status_bar_controller.show_message, self.current_user)
+
+        mdi_sub_window = QMdiSubWindow()
+
+        self.main_view.open_child_form(self.equipment_view, mdi_sub_window)
 
 def main():
     app = QApplication(sys.argv)

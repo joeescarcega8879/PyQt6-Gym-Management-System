@@ -54,9 +54,9 @@ scripts/
 | Memberships | Completo | 94    | Planes + membresías asignadas, CRUD, transiciones de estado           |
 | Classes     | Completo | 75    | CRUD clases + horarios + inscripciones, 3 tabs, capacidad máxima      |
 | Settings    | Completo | 31    | Cambio de tema en vivo, 5 temas dark, persistencia en JSON            |
-| Dashboard   | Pendiente | —    | Requiere datos de Memberships y Payments                              |
-| Instructors | Pendiente | —    | btn_instructors en sidebar, sin implementar                           |
-| Equipment   | Pendiente | —    | btn_equipment en sidebar, sin implementar                             |
+| Dashboard   | Completo | 17    | KPIs + tablas de detalle, agrega datos de otros servicios, refresh manual |
+| Instructors | Completo | 51    | CRUD funcional, permisos, specialties como TEXT[], sin vínculo a users |
+| Equipment   | Completo | 57    | 2 tabs (Equipment + Maintenance), CRUD equipo + historial insert-only |
 | Reports     | Pendiente | —    | btn_reports en sidebar, sin implementar                               |
 
 ---
@@ -359,9 +359,139 @@ Usuario presiona Discard
 
 ---
 
+## Módulo Dashboard — Archivos Implementados ✅
+
+| Archivo | Notas |
+|---|---|
+| `src/models/models.py` — `DashboardSummary` | Dataclass: active_members, monthly_revenue, today_checkins, expiring_memberships_count, today_schedules, expiring_memberships |
+| `src/domain/permissions_definitions.py` | `DASHBOARD_READ` |
+| `src/domain/permissions.py` | `DASHBOARD_READ` → ADMIN, RECEPTIONIST, INSTRUCTOR, ACCOUNTANT (todos los roles autenticados) |
+| `src/utils/error_messages.py` | 3 constantes Dashboard |
+| `src/services/dashboard_service.py` | `DashboardService.get_summary()` — no accede a `db_manager` directamente, agrega datos de los demás servicios |
+| `src/views/ui/dashboard_view.ui` | 4 tarjetas KPI + 2 tablas de detalle, 1200×750 |
+| `src/views/dashboard_view.py` | Señal `refresh_requested`, `set_summary()`, 2 métodos `populate_*_table` |
+| `src/presenters/dashboard_presenter.py` | Carga automática al abrir + refresh manual, valida `DASHBOARD_READ` |
+| `tests/test_dashboard_service.py` | 17 tests, 100% passing |
+
+### Service — Diseño
+
+- `DashboardService` es una capa de agregación pura: reutiliza `member_service`, `payment_service`, `attendance_service`, `membership_service` y `class_service` en vez de tocar `db_manager` directamente, evitando duplicar SQL/joins ya existentes.
+- Cada sub-consulta (`_get_active_members_count`, `_get_monthly_revenue`, etc.) atrapa el fallo del sub-servicio con un `logger.warning` y retorna un valor por defecto (0 / lista vacía) — un módulo caído no tumba todo el Dashboard.
+- `get_summary()` sí propaga una excepción inesperada (no controlada dentro de los helpers) como `ServiceResult.fail(...)`.
+
+### KPIs y fuentes de datos
+
+| KPI / Tabla | Fuente |
+|---|---|
+| Active Members | `member_service.get_all_members(include_inactive=False)` → `len()` |
+| Revenue This Month | `payment_service.get_payments(status=COMPLETED, date_from=1er día del mes, date_to=hoy)` → `sum(amount)` |
+| Check-ins Today | `attendance_service.get_attendance_by_date(date.today())` → `len()` |
+| Memberships Expiring (7 days) | `membership_service.get_memberships(expiring_days=7)` → `len()` / lista |
+| Today's Classes (tabla) | `class_service.get_schedules(day_of_week=hoy, include_inactive=False)` |
+
+- Conversión de día de la semana: `ClassSchedule.day_of_week` usa 0=Domingo…6=Sábado; `date.weekday()` de Python usa 0=Lunes…6=Domingo → fórmula `(date.today().weekday() + 1) % 7`.
+- Sin gráficos (matplotlib/pyqtgraph no instalados en el entorno actual); solo tarjetas numéricas + tablas.
+- Refresh manual vía `btn_refresh` (sin `QTimer`, consistente con el resto de módulos).
+
+---
+
+## Módulo Instructors — Archivos Implementados ✅
+
+| Archivo | Notas |
+|---|---|
+| `src/models/models.py` — `Instructor` | Dataclass ya existía: id, user_id, first_name, last_name, email, phone, specialties (List[str]), certifications, hire_date, photo_url, is_active, created_at, updated_at + property `full_name` |
+| `docs/database_schema.sql` | Tabla `instructors` ya existía (columnas 1:1 con el dataclass); `specialties` es `TEXT[]` nativo de Postgres |
+| `src/domain/permissions_definitions.py` | `INSTRUCTORS_CREATE/READ/UPDATE` (sin DELETE — mismo patrón que Classes, soft-delete vía `is_active`) |
+| `src/domain/permissions.py` | `INSTRUCTORS_READ` → ADMIN/RECEPTIONIST/INSTRUCTOR; `INSTRUCTORS_CREATE/UPDATE` → ADMIN |
+| `src/utils/error_messages.py` | 12 constantes Instructors |
+| `src/services/instructor_service.py` | 5 métodos públicos: get_all/get_by_id/search/create/update |
+| `src/views/ui/instructor_view.ui` | Layout Qt Designer, adaptado de `member_view.ui`, 1060×700 |
+| `src/views/instructor_view.py` | 7 señales, populate_table, define `show_error()` (ver nota abajo) |
+| `src/presenters/instructor_presenter.py` | CRUD + búsqueda, validación de permisos |
+| `tests/test_instructor_service.py` | 51 tests, 100% passing |
+
+### Diferencias con Members (a propósito)
+
+- Sin `member_code`/`created_by`: la tabla `instructors` no tiene esas columnas.
+- Sin `INSTRUCTORS_DELETE`: ningún módulo del proyecto implementa delete real; todos usan el toggle `is_active` vía update (igual que Members/Classes a pesar de que sus permisos `_DELETE` existen como constantes sin uso).
+- `specialties` es `TEXT[]` — psycopg2 + `RealDictCursor` lo mapea de forma nativa a `list[str]`, sin serialización manual. En la UI se edita como texto separado por comas (`input_specialties`) y se parsea con `InstructorView._parse_specialties()`.
+- `user_id` y `photo_url` existen en el dataclass pero no se exponen en el formulario (igual que `photo_url` en Members) — quedan disponibles para una futura vinculación con `users`.
+- Búsqueda: solo por First Name / Last Name / Email (no hay campo tipo "código" como en Members).
+
+### Nota — bug latente encontrado en Members (no corregido, fuera de alcance)
+
+`member_presenter.py` llama a `self.view.show_error(...)` en varias rutas de error, pero `MemberView` **no define** ese método — probablemente lanza `AttributeError` en producción cuando falla una carga/búsqueda. `InstructorView` sí define `show_error()` correctamente (usa `QMessageBox.critical`), evitando heredar el mismo bug.
+
+### Columnas de `table_instructors`
+
+| # | Header | Fuente |
+|---|---|---|
+| 0 | First Name | `i.first_name` + UUID en `UserRole` |
+| 1 | Last Name | `i.last_name` |
+| 2 | Email | `i.email or ""` |
+| 3 | Phone | `i.phone or ""` |
+| 4 | Specialties | `", ".join(i.specialties)` |
+| 5 | Certifications | `i.certifications or ""` |
+| 6 | Hire Date | `str(i.hire_date)` o `""` |
+| 7 | Status | `"Active"` / `"Inactive"` |
+
+---
+
+## Módulo Equipment — Archivos Implementados ✅
+
+| Archivo | Notas |
+|---|---|
+| `src/models/models.py` — `Equipment`, `EquipmentMaintenance` | Dataclasses ya existían; `EquipmentMaintenance` no tiene `updated_at` (tabla insert-only) |
+| `src/models/enums.py` — `EquipmentCondition`, `MaintenanceType` | excellent/good/fair/poor/out_of_service · preventive/corrective/inspection |
+| `docs/database_schema.sql` | Tablas `equipment` y `equipment_maintenance` ya existían; `equipment_maintenance.performed_by` es `VARCHAR` libre, no FK a `users` |
+| `src/domain/permissions_definitions.py` | `EQUIPMENT_CREATE/READ/UPDATE`, `MAINTENANCE_CREATE/READ` |
+| `src/domain/permissions.py` | `EQUIPMENT_READ`/`MAINTENANCE_READ` → ADMIN/RECEPTIONIST/INSTRUCTOR; `EQUIPMENT_CREATE/UPDATE`/`MAINTENANCE_CREATE` → ADMIN |
+| `src/utils/error_messages.py` | 13 constantes Equipment + 6 constantes Maintenance |
+| `src/services/equipment_service.py` | 9 métodos públicos: CRUD equipo (5) + consulta/registro de mantenimiento (4) |
+| `src/views/ui/equipment_view.ui` | QTabWidget 2 tabs, 1200×750 — mismo patrón que `membership_view.ui` |
+| `src/views/equipment_view.py` | 9 señales, getters/setters para ambos tabs |
+| `src/presenters/equipment_presenter.py` | Equipment CRUD (patrón "Save" único como Plans) + Maintenance filter/log |
+| `tests/test_equipment_service.py` | 57 tests, 100% passing |
+
+### Diseño — por qué sigue el patrón de Memberships y no el de Members/Instructors
+
+- `Equipment` + `EquipmentMaintenance` son dos entidades relacionadas (1:N vía `equipment_id`), igual que Plans + Memberships → un servicio, un presenter, una vista con `QTabWidget` de 2 tabs, en vez del patrón CRUD plano de un solo formulario.
+- Tab "Equipment": `btn_new_equipment` / `btn_save_equipment` / `btn_cancel_equipment` — un solo botón "Save" decide crear o actualizar según `_selected_equipment_id` en el presenter (igual que `_handle_save_plan` en `MembershipPresenter`), no dos botones separados como en Members/Instructors.
+- Tab "Maintenance": solo lectura + creación (`get_maintenance_records` + `log_maintenance`) — sin update ni delete, porque `equipment_maintenance` es una tabla de historial insert-only (sin `updated_at`), igual que Payments/Attendance.
+- `_MAINTENANCE_COLUMNS` + `_MAINTENANCE_JOINS` hacen `LEFT JOIN equipment` para traer `equipment.name AS equipment_name` denormalizado en cada fila, igual que `_MEMBERSHIP_COLUMNS`/`_MEMBERSHIP_JOINS` en `membership_service.py`.
+- `get_maintenance_records()` usa `db_manager.select_range()` cuando se pasan `date_from`/`date_to`, y `db_manager.select()` en el resto de los casos — misma rama condicional que `get_memberships()`.
+- `log_maintenance()` inserta y luego adjunta manualmente `equipment_name` a la fila devuelta por `insert()` (que no lleva el join), antes de convertirla con `_row_to_maintenance` — mismo truco usado en `assign_membership()`.
+
+### Columnas de `equipment_table`
+
+| # | Header | Fuente |
+|---|---|---|
+| 0 | Name | `e.name` + UUID en `UserRole` |
+| 1 | Category | `e.category or ""` |
+| 2 | Brand | `e.brand or ""` |
+| 3 | Model | `e.model or ""` |
+| 4 | Serial Number | `e.serial_number or ""` |
+| 5 | Condition | `e.condition.value.replace("_"," ").capitalize()` |
+| 6 | Location | `e.location or ""` |
+| 7 | Status | `"Active"` / `"Inactive"` |
+
+### Columnas de `maintenance_table`
+
+| # | Header | Fuente |
+|---|---|---|
+| 0 | Equipment | `r.equipment.name` (join denormalizado) |
+| 1 | Date | `r.maintenance_date.strftime("%Y-%m-%d")` |
+| 2 | Type | `r.maintenance_type.value.capitalize()` |
+| 3 | Description | `r.description or ""` |
+| 4 | Cost | `f"${r.cost:.2f}"` o `""` |
+| 5 | Performed By | `r.performed_by or ""` |
+| 6 | Next Maintenance | `r.next_maintenance_date.strftime("%Y-%m-%d")` o `""` |
+
+---
+
 ## Tests — Estado Actual
 
-**Total: 422 tests, 100% passing.**
+**Total: 547 tests, 100% passing.**
 
 | Archivo de test                  | Módulo cubierto                     | Tests |
 |----------------------------------|-------------------------------------|-------|
@@ -374,13 +504,17 @@ Usuario presiona Discard
 | `test_membership_service.py`     | `services/membership_service.py`    | 94    |
 | `test_class_service.py`          | `services/class_service.py`         | 75    |
 | `test_settings_service.py`       | `services/settings_service.py`      | 31    |
+| `test_dashboard_service.py`      | `services/dashboard_service.py`     | 17    |
+| `test_instructor_service.py`     | `services/instructor_service.py`    | 51    |
+| `test_equipment_service.py`      | `services/equipment_service.py`     | 57    |
 | `conftest.py`                    | Fixtures compartidas                | —     |
 
 **Estrategia de mocking:**
 - `db_manager` parcheado con `unittest.mock.patch('src.services.*.db_manager')`.
 - `settings_service`: `_SETTINGS_FILE` y `config` parcheados; tests de CSS leen archivos reales.
+- `dashboard_service`: se parchean los sub-servicios (`member_service`, `payment_service`, etc.) tal como se importan en `src.services.dashboard_service`, no `db_manager`.
 - Helpers estáticos puros testeados directamente sin mocks.
-- Ejecutar con: `python -m pytest tests/ -v`
+- Ejecutar con: `conda run -n MainEnvironment python -m pytest tests/ -v` (entorno conda `MainEnvironment`)
 
 ---
 
@@ -404,6 +538,13 @@ Usuario presiona Discard
 | Schedules | CREATE, UPDATE | ADMIN |
 | Enrollments | READ | ADMIN, RECEPTIONIST, INSTRUCTOR |
 | Enrollments | CREATE, UPDATE | ADMIN, RECEPTIONIST |
+| Dashboard | READ | ADMIN, RECEPTIONIST, INSTRUCTOR, ACCOUNTANT |
+| Instructors | READ | ADMIN, RECEPTIONIST, INSTRUCTOR |
+| Instructors | CREATE, UPDATE | ADMIN |
+| Equipment | READ | ADMIN, RECEPTIONIST, INSTRUCTOR |
+| Equipment | CREATE, UPDATE | ADMIN |
+| Maintenance | READ | ADMIN, RECEPTIONIST, INSTRUCTOR |
+| Maintenance | CREATE | ADMIN |
 
 ---
 
@@ -411,37 +552,71 @@ Usuario presiona Discard
 
 | Botón | Módulo | Estado |
 |---|---|---|
+| `btn_dashboard` | Dashboard | Conectado ✅ |
 | `btn_members` | Members | Conectado ✅ |
 | `btn_attendance` | Attendance | Conectado ✅ |
 | `btn_payments` | Payments | Conectado ✅ |
 | `btn_memberships` | Memberships | Conectado ✅ |
 | `btn_classes` | Classes | Conectado ✅ |
 | `btn_settings` | Settings | Conectado ✅ |
-| `btn_dashboard` | Dashboard | Sin implementar |
-| `btn_instructors` | Instructors | Sin implementar |
-| `btn_equipment` | Equipment | Sin implementar |
+| `btn_instructors` | Instructors | Conectado ✅ |
+| `btn_equipment` | Equipment | Conectado ✅ |
 | `btn_reports` | Reports | Sin implementar |
-| `btn_logout` | Logout | Sin implementar |
+| `btn_logout` | Logout | Conectado ✅ |
 
 ---
 
 ## Historial de Cambios Recientes
 
-### Módulo Classes — Implementado ✅ (sesión actual)
+### Módulo Equipment — Implementado ✅ (sesión actual)
+- Sigue el patrón de Memberships (2 entidades relacionadas → 1 servicio, 1 presenter, 1 vista con `QTabWidget`) en vez del patrón CRUD plano de Members/Instructors
+- `EquipmentService`: CRUD de `Equipment` (5 métodos) + `get_maintenance_records`/`get_maintenance_by_equipment`/`log_maintenance` para `EquipmentMaintenance` (insert-only, sin update/delete)
+- Tab "Equipment": un solo botón Save decide crear/actualizar según `_selected_equipment_id` (como Plans); Tab "Maintenance": filtro + tabla + formulario de registro
+- `_MAINTENANCE_COLUMNS`/`_MAINTENANCE_JOINS` con `LEFT JOIN equipment` para denormalizar `equipment.name` en cada fila de mantenimiento
+- Permisos: `EQUIPMENT_READ`/`MAINTENANCE_READ` → ADMIN/RECEPTIONIST/INSTRUCTOR; `EQUIPMENT_CREATE/UPDATE`/`MAINTENANCE_CREATE` → ADMIN
+- `btn_equipment` conectado en sidebar; wiring completo `MainView` → `MainPresenter` → `MainApplication.open_equipment_form()`
+- 57 tests nuevos, 100% passing (547 tests totales en el proyecto)
+- Verificado con Qt en modo `offscreen`: carga de la vista (2 tabs), poblar ambas tablas, combos de equipo, selección de fila con recuperación de UUID, round-trip de formulario, clicks de `btn_save_equipment`/`btn_log_maintenance`/`btn_equipment` emitiendo sus señales
+
+### Módulo Instructors — Implementado ✅
+- `InstructorService`: 5 métodos públicos (get_all/get_by_id/search/create/update), mismo patrón que `MemberService` pero sin `member_code`/`created_by`
+- `specialties` (`TEXT[]` en Postgres) mapeado nativamente por psycopg2/`RealDictCursor`; en la UI se edita como texto separado por comas
+- Permisos: `INSTRUCTORS_READ` → ADMIN/RECEPTIONIST/INSTRUCTOR; `INSTRUCTORS_CREATE/UPDATE` → ADMIN (sin DELETE, igual que el resto de módulos que usan soft-delete vía `is_active`)
+- `instructor_view.ui` nuevo, adaptado de `member_view.ui`; `InstructorView` corrige un bug que sí existe en `MemberView` (falta el método `show_error`, ver nota en la sección del módulo)
+- `btn_instructors` conectado en sidebar; wiring completo `MainView` → `MainPresenter` → `MainApplication.open_instructors_form()`
+- 51 tests nuevos, 100% passing (490 tests totales en el proyecto)
+- Verificado con Qt en modo `offscreen`: carga de la vista, poblar tabla, selección de fila con recuperación de UUID, `set_form_data`/`get_form_data` round-trip, click de `btn_instructors` emitiendo la señal
+
+### Logout — Implementado ✅
+- `MainView`: señal `logout_requested`; `btn_logout` conectado a `confirm_logout()`, que muestra `QMessageBox.question` y solo emite la señal si el usuario confirma (mismo patrón que la confirmación de update en `member_view.py`)
+- `MainPresenter` conecta `logout_requested` → `MainApplication.logout()`
+- `MainApplication.logout()`: cierra `main_view` (cierra en cascada las sub-ventanas MDI abiertas), limpia `current_user` y vuelve a mostrar el login vía `_init_login()`
+- Sin tests dedicados (wiring de UI puro, sin lógica de servicio); verificado manualmente con Qt en modo `offscreen` simulando clicks Yes/No sobre el diálogo de confirmación
+- `btn_logout` conectado en sidebar
+
+### Módulo Dashboard — Implementado ✅
+- `DashboardService.get_summary()` agrega datos de member/payment/attendance/membership/class service (sin SQL nuevo)
+- 4 tarjetas KPI (Active Members, Revenue This Month, Check-ins Today, Memberships Expiring) + 2 tablas de detalle (Today's Classes, Expiring Memberships)
+- Refresh manual (`btn_refresh`), carga automática al abrir
+- Permiso `DASHBOARD_READ` asignado a los 4 roles
+- `btn_dashboard` conectado en sidebar; entorno de desarrollo/test: conda `MainEnvironment`
+- 17 tests, 100% passing (439 tests totales en el proyecto)
+
+### Módulo Classes — Implementado ✅
 - Servicio con 15 métodos públicos: CRUD clases, CRUD horarios, CRUD inscripciones
 - Vista con 3 tabs: Classes / Schedules / Enrollments
 - Validación de capacidad máxima al inscribir (llama `get_enrollment_count` antes del insert)
 - Reutiliza `MemberSelectDialog` para búsqueda de miembro en inscripciones
 - 75 tests, 100% passing
 
-### Módulo Settings — Implementado ✅ (sesión actual)
+### Módulo Settings — Implementado ✅
 - 5 temas dark generados desde `styles.css` via `scripts/generate_themes.py`
 - Preview en vivo al seleccionar: `QApplication.setStyleSheet()` se llama instantáneamente
 - Persistencia en `data/user_settings.json`; se carga al arrancar antes de mostrar ninguna ventana
 - `btn_settings` conectado en sidebar; `btn_close` con ícono `IMG-Settings.png`
 - 31 tests, 100% passing
 
-### Documentación y Stack — Actualizado ✅ (sesión actual)
+### Documentación y Stack — Actualizado ✅
 - `CONTEXT.md` corregido: `supabase-py` → `psycopg2-binary`, referencias a Supabase eliminadas
 - `README.md` reescrito: instrucciones de instalación con PostgreSQL local, eliminadas referencias Supabase
 - Verificado: código fuente 100% consistente en PostgreSQL via psycopg2; sin rastro de SQLite ni Supabase
@@ -452,8 +627,4 @@ Usuario presiona Discard
 
 | Módulo | Botón en sidebar | Prioridad | Notas |
 |---|---|---|---|
-| Dashboard | `btn_dashboard` | Alta | Datos fuente (Memberships, Payments, Attendance) ya disponibles |
-| Logout | `btn_logout` | Alta | Cerrar sesión y volver al login |
-| Instructors | `btn_instructors` | Media | Dataclass `Instructor` ya existe en `models.py` |
-| Equipment | `btn_equipment` | Baja | Dataclass `Equipment` ya existe en `models.py` |
 | Reports | `btn_reports` | Baja | Requiere definir qué reportes generar |

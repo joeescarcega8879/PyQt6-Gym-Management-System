@@ -43,3 +43,20 @@ class Permissions:
     ENROLLMENTS_CREATE = "enrollments.create"
     ENROLLMENTS_READ   = "enrollments.read"
     ENROLLMENTS_UPDATE = "enrollments.update"
+
+    # Permissions related to the dashboard
+    DASHBOARD_READ = "dashboard.read"
+
+    # Permissions related to instructors
+    INSTRUCTORS_CREATE = "instructors.create"
+    INSTRUCTORS_READ   = "instructors.read"
+    INSTRUCTORS_UPDATE = "instructors.update"
+
+    # Permissions related to equipment
+    EQUIPMENT_CREATE = "equipment.create"
+    EQUIPMENT_READ   = "equipment.read"
+    EQUIPMENT_UPDATE = "equipment.update"
+
+    # Permissions related to equipment maintenance
+    MAINTENANCE_CREATE = "maintenance.create"
+    MAINTENANCE_READ   = "maintenance.read"

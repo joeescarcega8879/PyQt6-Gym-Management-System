@@ -3,20 +3,26 @@ import sys
 from PyQt6 import uic
 from PyQt6 import QtCore
 from PyQt6.QtCore import pyqtSignal, QSize
-from PyQt6.QtWidgets import QMainWindow, QApplication
+from PyQt6.QtWidgets import QMainWindow, QApplication, QMessageBox
 from src.assets.resources_rc import get_icon
 
 
 class MainView(QMainWindow):
 
     # Signal to indicate that a child form should be opened
+    form_dashboard_requested   = pyqtSignal()
     form_members_requested     = pyqtSignal()
     form_attendance_requested  = pyqtSignal()
     form_payments_requested    = pyqtSignal()
     form_memberships_requested = pyqtSignal()
     form_classes_requested     = pyqtSignal()
     form_settings_requested    = pyqtSignal()
-    
+    form_instructors_requested = pyqtSignal()
+    form_equipment_requested   = pyqtSignal()
+
+    # Signal to indicate that the user confirmed logging out
+    logout_requested = pyqtSignal()
+
     def __init__(self):
         super(MainView, self).__init__()
         
@@ -30,13 +36,17 @@ class MainView(QMainWindow):
         # Load ui
         uic.loadUi(ui_path, self)
 
+        self.btn_dashboard.clicked.connect(self.form_dashboard_requested.emit)
         self.btn_members.clicked.connect(self.form_members_requested.emit)
         self.btn_attendance.clicked.connect(self.form_attendance_requested.emit)
         self.btn_payments.clicked.connect(self.form_payments_requested.emit)
         self.btn_memberships.clicked.connect(self.form_memberships_requested.emit)
         self.btn_classes.clicked.connect(self.form_classes_requested.emit)
         self.btn_settings.clicked.connect(self.form_settings_requested.emit)
-        
+        self.btn_instructors.clicked.connect(self.form_instructors_requested.emit)
+        self.btn_equipment.clicked.connect(self.form_equipment_requested.emit)
+        self.btn_logout.clicked.connect(self.confirm_logout)
+
         self.btn_colapse.clicked.connect(self.toggle_sidebar_frame)
 
         # Assign sidebar icons
@@ -88,7 +98,18 @@ class MainView(QMainWindow):
 
         self.mdi_area.addSubWindow(mdiSubWindow)
         mdiSubWindow.showMaximized()
-        
+
+    def confirm_logout(self) -> None:
+        reply = QMessageBox.question(
+            self,
+            "Confirm Logout",
+            "Are you sure you want to log out?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            self.logout_requested.emit()
+
     def toggle_sidebar_frame(self) -> None:
         if self.sidebar_frame.width() == 220:
             self.sidebar_frame.setFixedWidth(64)

@@ -30,6 +30,7 @@ from src.models.models import (
     EquipmentMaintenance,
     CashRegister,
     Notification,
+    DashboardSummary,
 )
 
 __all__ = [
@@ -60,4 +61,5 @@ __all__ = [
     'EquipmentMaintenance',
     'CashRegister',
     'Notification',
+    'DashboardSummary',
 ]

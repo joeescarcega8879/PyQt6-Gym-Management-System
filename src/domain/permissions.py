@@ -43,4 +43,21 @@ PERMISSIONS = {
     Permissions.ENROLLMENTS_CREATE: {UserRole.ADMIN, UserRole.RECEPTIONIST},
     Permissions.ENROLLMENTS_UPDATE: {UserRole.ADMIN, UserRole.RECEPTIONIST},
 
+    # Permissions related to the dashboard
+    Permissions.DASHBOARD_READ: {UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.INSTRUCTOR, UserRole.ACCOUNTANT},
+
+    # Permissions related to instructors
+    Permissions.INSTRUCTORS_READ:   {UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.INSTRUCTOR},
+    Permissions.INSTRUCTORS_CREATE: {UserRole.ADMIN},
+    Permissions.INSTRUCTORS_UPDATE: {UserRole.ADMIN},
+
+    # Permissions related to equipment
+    Permissions.EQUIPMENT_READ:   {UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.INSTRUCTOR},
+    Permissions.EQUIPMENT_CREATE: {UserRole.ADMIN},
+    Permissions.EQUIPMENT_UPDATE: {UserRole.ADMIN},
+
+    # Permissions related to equipment maintenance
+    Permissions.MAINTENANCE_READ:   {UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.INSTRUCTOR},
+    Permissions.MAINTENANCE_CREATE: {UserRole.ADMIN},
+
 }

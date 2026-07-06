@@ -4,7 +4,9 @@
       "Bash(python -m pytest tests/ -v)",
       "Bash(python -m pytest tests/test_membership_service.py -v)",
       "Bash(C:Usersjoseeminiconda3python.exe -c ' *)",
-      "Bash(C:\\\\Users\\\\josee\\\\miniconda3\\\\envs\\\\EnvironmentGym\\\\python.exe -m pytest tests/ -q --tb=no)"
+      "Bash(C:\\\\Users\\\\josee\\\\miniconda3\\\\envs\\\\EnvironmentGym\\\\python.exe -m pytest tests/ -q --tb=no)",
+      "Bash(conda run *)",
+      "Bash(QT_QPA_PLATFORM=offscreen conda run *)"
     ]
   }
 }
