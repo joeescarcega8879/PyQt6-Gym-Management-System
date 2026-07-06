@@ -40,6 +40,7 @@ class Config:
     DATA_DIR = ROOT_DIR / 'data'
     LOGS_DIR = ROOT_DIR / 'logs'
     RESOURCES_DIR = ROOT_DIR / 'src' / 'resources'
+    EXPORTS_DIR = ROOT_DIR / 'exports'
 
     @classmethod
     def validate(cls):
@@ -74,6 +75,7 @@ class Config:
         """Creates required directories if they do not already exist."""
         cls.DATA_DIR.mkdir(exist_ok=True)
         cls.LOGS_DIR.mkdir(exist_ok=True)
+        cls.EXPORTS_DIR.mkdir(exist_ok=True)
 
     @classmethod
     def get_database_config(cls) -> dict:

@@ -19,6 +19,7 @@ class MainView(QMainWindow):
     form_settings_requested    = pyqtSignal()
     form_instructors_requested = pyqtSignal()
     form_equipment_requested   = pyqtSignal()
+    form_reports_requested     = pyqtSignal()
 
     # Signal to indicate that the user confirmed logging out
     logout_requested = pyqtSignal()
@@ -45,6 +46,7 @@ class MainView(QMainWindow):
         self.btn_settings.clicked.connect(self.form_settings_requested.emit)
         self.btn_instructors.clicked.connect(self.form_instructors_requested.emit)
         self.btn_equipment.clicked.connect(self.form_equipment_requested.emit)
+        self.btn_reports.clicked.connect(self.form_reports_requested.emit)
         self.btn_logout.clicked.connect(self.confirm_logout)
 
         self.btn_colapse.clicked.connect(self.toggle_sidebar_frame)

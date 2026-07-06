@@ -187,6 +187,9 @@ class MemberView(QWidget):
         self.label_user_name.setText(f"Username: {user_info.get('username', 'Unknown')}")
         self.label_user_role.setText(f"Role: {user_info.get('role', 'Unknown')}")
 
+    def show_error(self, message: str) -> None:
+        QMessageBox.critical(self, "Error", message)
+
     def show_message_update_confirmation(self) -> None:
 
         if not self.get_selected_member_data():

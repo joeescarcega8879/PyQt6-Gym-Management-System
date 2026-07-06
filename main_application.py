@@ -19,6 +19,7 @@ from src.views.class_view import ClassView
 from src.views.settings_view import SettingsView
 from src.views.instructor_view import InstructorView
 from src.views.equipment_view import EquipmentView
+from src.views.reports_view import ReportsView
 
 from src.presenters.login_presenter import LoginPresenter
 from src.presenters.main_presenter import MainPresenter
@@ -31,6 +32,7 @@ from src.presenters.class_presenter import ClassPresenter
 from src.presenters.settings_presenter import SettingsPresenter
 from src.presenters.instructor_presenter import InstructorPresenter
 from src.presenters.equipment_presenter import EquipmentPresenter
+from src.presenters.reports_presenter import ReportsPresenter
 
 from src.services.settings_service import settings_service
 
@@ -202,6 +204,16 @@ class MainApplication:
         mdi_sub_window = QMdiSubWindow()
 
         self.main_view.open_child_form(self.equipment_view, mdi_sub_window)
+
+    def open_reports_form(self) -> None:
+        self.logger.info("Opening reports form")
+
+        self.reports_view = ReportsView()
+        self.reports_presenter = ReportsPresenter(self.reports_view, self, self.status_bar_controller.show_message, self.current_user)
+
+        mdi_sub_window = QMdiSubWindow()
+
+        self.main_view.open_child_form(self.reports_view, mdi_sub_window)
 
 def main():
     app = QApplication(sys.argv)

@@ -193,6 +193,63 @@ class TestGetAttendanceByDate:
 
 
 # ---------------------------------------------------------------------------
+# get_attendance_by_range
+# ---------------------------------------------------------------------------
+class TestGetAttendanceByRange:
+    def setup_method(self):
+        self.svc = AttendanceService()
+
+    @patch("src.services.attendance_service.db_manager")
+    def test_returns_records_matching_the_range(self, mock_db):
+        mock_db.select_range.return_value = [make_attendance_row()]
+        result = self.svc.get_attendance_by_range(date(2026, 3, 20), date(2026, 3, 25))
+        assert result.success is True
+        assert len(result.data) == 1
+
+    @patch("src.services.attendance_service.db_manager")
+    def test_returns_empty_list_when_no_records(self, mock_db):
+        mock_db.select_range.return_value = []
+        result = self.svc.get_attendance_by_range(date(2026, 3, 20), date(2026, 3, 25))
+        assert result.success is True
+        assert result.data == []
+
+    @patch("src.services.attendance_service.db_manager")
+    def test_returns_multiple_records_across_days(self, mock_db):
+        row2 = make_attendance_row(id="att-002", member_id="mem-002")
+        mock_db.select_range.return_value = [make_attendance_row(), row2]
+        result = self.svc.get_attendance_by_range(date(2026, 3, 20), date(2026, 3, 25))
+        assert result.success is True
+        assert len(result.data) == 2
+
+    @patch("src.services.attendance_service.db_manager")
+    def test_db_exception_returns_failure(self, mock_db):
+        mock_db.select_range.side_effect = Exception("connection lost")
+        result = self.svc.get_attendance_by_range(date(2026, 3, 20), date(2026, 3, 25))
+        assert result.success is False
+        assert result.error is not None
+
+    @patch("src.services.attendance_service.db_manager")
+    def test_queries_attendance_table_with_member_join(self, mock_db):
+        mock_db.select_range.return_value = []
+        self.svc.get_attendance_by_range(date(2026, 3, 20), date(2026, 3, 25))
+        call_kwargs = mock_db.select_range.call_args.kwargs
+        assert call_kwargs["table"] == "attendance"
+        assert "members.first_name" in call_kwargs["columns"]
+        assert call_kwargs["joins"] is not None
+
+    @patch("src.services.attendance_service.db_manager")
+    def test_range_spans_from_start_of_from_date_to_end_of_to_date(self, mock_db):
+        mock_db.select_range.return_value = []
+        self.svc.get_attendance_by_range(date(2026, 3, 20), date(2026, 3, 25))
+        call_kwargs = mock_db.select_range.call_args.kwargs
+        assert call_kwargs["column"] == "check_in_time"
+        assert call_kwargs["start"].startswith("2026-03-2")
+        assert call_kwargs["end"].startswith("2026-03-2")
+        assert "+00:00" in call_kwargs["start"]
+        assert "+00:00" in call_kwargs["end"]
+
+
+# ---------------------------------------------------------------------------
 # search_member_for_checkin
 # ---------------------------------------------------------------------------
 

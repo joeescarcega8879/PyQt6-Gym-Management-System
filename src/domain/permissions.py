@@ -60,4 +60,7 @@ PERMISSIONS = {
     Permissions.MAINTENANCE_READ:   {UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.INSTRUCTOR},
     Permissions.MAINTENANCE_CREATE: {UserRole.ADMIN},
 
+    # Permissions related to reports
+    Permissions.REPORTS_READ: {UserRole.ADMIN, UserRole.ACCOUNTANT},
+
 }

@@ -31,6 +31,10 @@ from src.models.models import (
     CashRegister,
     Notification,
     DashboardSummary,
+    FinancialReport,
+    MembershipReport,
+    AttendanceReport,
+    OperationalReport,
 )
 
 __all__ = [
@@ -62,4 +66,8 @@ __all__ = [
     'CashRegister',
     'Notification',
     'DashboardSummary',
+    'FinancialReport',
+    'MembershipReport',
+    'AttendanceReport',
+    'OperationalReport',
 ]

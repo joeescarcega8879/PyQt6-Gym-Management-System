@@ -16,4 +16,5 @@ class MainPresenter:
         self.view.form_settings_requested.connect(self.main_app.open_settings_form)
         self.view.form_instructors_requested.connect(self.main_app.open_instructors_form)
         self.view.form_equipment_requested.connect(self.main_app.open_equipment_form)
+        self.view.form_reports_requested.connect(self.main_app.open_reports_form)
         self.view.logout_requested.connect(self.main_app.logout)

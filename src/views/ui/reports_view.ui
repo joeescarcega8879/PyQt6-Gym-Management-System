@@ -1,0 +1,771 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Form</class>
+ <widget class="QWidget" name="Form">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1200</width>
+    <height>750</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Reports</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout_main">
+   <property name="spacing">
+    <number>0</number>
+   </property>
+   <property name="leftMargin">
+    <number>6</number>
+   </property>
+   <property name="topMargin">
+    <number>6</number>
+   </property>
+   <property name="rightMargin">
+    <number>6</number>
+   </property>
+   <property name="bottomMargin">
+    <number>6</number>
+   </property>
+
+   <!-- TOP BAR -->
+   <item>
+    <widget class="QFrame" name="bar_information">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>50</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>50</height>
+      </size>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Raised</enum>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout_bar">
+      <property name="leftMargin">
+       <number>8</number>
+      </property>
+      <property name="topMargin">
+       <number>4</number>
+      </property>
+      <property name="rightMargin">
+       <number>8</number>
+      </property>
+      <property name="bottomMargin">
+       <number>4</number>
+      </property>
+      <item>
+       <widget class="QLabel" name="label_user_name">
+        <property name="font">
+         <font>
+          <family>Century Gothic</family>
+          <pointsize>12</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_user_role">
+        <property name="font">
+         <font>
+          <family>Century Gothic</family>
+          <pointsize>12</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer_bar">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeType">
+         <enum>QSizePolicy::Expanding</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btn_close">
+        <property name="minimumSize">
+         <size>
+          <width>64</width>
+          <height>36</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>64</width>
+          <height>36</height>
+         </size>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+
+   <!-- MAIN CONTENT: TAB WIDGET -->
+   <item>
+    <widget class="QTabWidget" name="tab_widget">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+
+     <!-- TAB 1 — FINANCIAL -->
+     <widget class="QWidget" name="tab_financial">
+      <attribute name="title">
+       <string>Financial</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_financial_tab">
+       <property name="spacing">
+        <number>4</number>
+       </property>
+       <property name="leftMargin">
+        <number>4</number>
+       </property>
+       <property name="topMargin">
+        <number>4</number>
+       </property>
+       <property name="rightMargin">
+        <number>4</number>
+       </property>
+       <property name="bottomMargin">
+        <number>4</number>
+       </property>
+
+       <item>
+        <widget class="QGroupBox" name="groupBox_financial_filters">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="title">
+          <string/>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_financial_filters">
+          <property name="leftMargin">
+           <number>6</number>
+          </property>
+          <property name="topMargin">
+           <number>4</number>
+          </property>
+          <property name="rightMargin">
+           <number>6</number>
+          </property>
+          <property name="bottomMargin">
+           <number>4</number>
+          </property>
+          <item>
+           <widget class="QLabel" name="label_financial_from">
+            <property name="text">
+             <string>From:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QDateEdit" name="date_financial_from">
+            <property name="minimumSize">
+             <size>
+              <width>120</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="displayFormat">
+             <string>yyyy-MM-dd</string>
+            </property>
+            <property name="calendarPopup">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_financial_to">
+            <property name="text">
+             <string>To:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QDateEdit" name="date_financial_to">
+            <property name="minimumSize">
+             <size>
+              <width>120</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="displayFormat">
+             <string>yyyy-MM-dd</string>
+            </property>
+            <property name="calendarPopup">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_financial_method">
+            <property name="text">
+             <string>Method:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="combo_financial_method"/>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_financial_status">
+            <property name="text">
+             <string>Status:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="combo_financial_status"/>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_filter_financial">
+            <property name="minimumSize">
+             <size>
+              <width>70</width>
+              <height>32</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Filter</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+
+       <item>
+        <widget class="QGroupBox" name="groupBox_financial_summary">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="title">
+          <string>Summary</string>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_financial_summary">
+          <item>
+           <widget class="QLabel" name="label_total_revenue">
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+              <bold>true</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>Total Revenue: $0.00</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_transaction_count">
+            <property name="text">
+             <string>Transactions: 0</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_revenue_change">
+            <property name="text">
+             <string>vs Previous Period: —</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_financial_summary">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_export_financial">
+            <property name="minimumSize">
+             <size>
+              <width>110</width>
+              <height>32</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Export PDF</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+
+       <item>
+        <widget class="QTableWidget" name="financial_table">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>1</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+
+     <!-- TAB 2 — MEMBERSHIPS -->
+     <widget class="QWidget" name="tab_memberships">
+      <attribute name="title">
+       <string>Memberships</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_memberships_tab">
+       <property name="spacing">
+        <number>4</number>
+       </property>
+       <property name="leftMargin">
+        <number>4</number>
+       </property>
+       <property name="topMargin">
+        <number>4</number>
+       </property>
+       <property name="rightMargin">
+        <number>4</number>
+       </property>
+       <property name="bottomMargin">
+        <number>4</number>
+       </property>
+
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_memberships_top">
+         <item>
+          <widget class="QLabel" name="label_retention_rate">
+           <property name="font">
+            <font>
+             <pointsize>12</pointsize>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Retention Rate: —</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_memberships_top">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btn_refresh_memberships">
+           <property name="minimumSize">
+            <size>
+             <width>90</width>
+             <height>32</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Refresh</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btn_export_memberships">
+           <property name="minimumSize">
+            <size>
+             <width>110</width>
+             <height>32</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Export PDF</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+
+       <item>
+        <widget class="QSplitter" name="splitter_memberships_counts">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <widget class="QTableWidget" name="membership_status_table"/>
+         <widget class="QTableWidget" name="membership_plan_table"/>
+        </widget>
+       </item>
+
+       <item>
+        <widget class="QLabel" name="label_expiring_soon">
+         <property name="text">
+          <string>Expiring Soon (7 days)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTableWidget" name="memberships_expiring_table">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>1</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+
+     <!-- TAB 3 — ATTENDANCE -->
+     <widget class="QWidget" name="tab_attendance">
+      <attribute name="title">
+       <string>Attendance</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_attendance_tab">
+       <property name="spacing">
+        <number>4</number>
+       </property>
+       <property name="leftMargin">
+        <number>4</number>
+       </property>
+       <property name="topMargin">
+        <number>4</number>
+       </property>
+       <property name="rightMargin">
+        <number>4</number>
+       </property>
+       <property name="bottomMargin">
+        <number>4</number>
+       </property>
+
+       <item>
+        <widget class="QGroupBox" name="groupBox_attendance_filters">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="title">
+          <string/>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_attendance_filters">
+          <property name="leftMargin">
+           <number>6</number>
+          </property>
+          <property name="topMargin">
+           <number>4</number>
+          </property>
+          <property name="rightMargin">
+           <number>6</number>
+          </property>
+          <property name="bottomMargin">
+           <number>4</number>
+          </property>
+          <item>
+           <widget class="QLabel" name="label_attendance_from">
+            <property name="text">
+             <string>From:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QDateEdit" name="date_attendance_from">
+            <property name="minimumSize">
+             <size>
+              <width>120</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="displayFormat">
+             <string>yyyy-MM-dd</string>
+            </property>
+            <property name="calendarPopup">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_attendance_to">
+            <property name="text">
+             <string>To:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QDateEdit" name="date_attendance_to">
+            <property name="minimumSize">
+             <size>
+              <width>120</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="displayFormat">
+             <string>yyyy-MM-dd</string>
+            </property>
+            <property name="calendarPopup">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_filter_attendance">
+            <property name="minimumSize">
+             <size>
+              <width>70</width>
+              <height>32</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Filter</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_attendance_filters">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_total_checkins">
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+              <bold>true</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>Total Check-ins: 0</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_export_attendance">
+            <property name="minimumSize">
+             <size>
+              <width>110</width>
+              <height>32</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Export PDF</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+
+       <item>
+        <widget class="QSplitter" name="splitter_attendance_tables">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <widget class="QTableWidget" name="attendance_hour_table"/>
+         <widget class="QTableWidget" name="attendance_top_members_table"/>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+
+     <!-- TAB 4 — OPERATIONAL -->
+     <widget class="QWidget" name="tab_operational">
+      <attribute name="title">
+       <string>Operational</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_operational_tab">
+       <property name="spacing">
+        <number>4</number>
+       </property>
+       <property name="leftMargin">
+        <number>4</number>
+       </property>
+       <property name="topMargin">
+        <number>4</number>
+       </property>
+       <property name="rightMargin">
+        <number>4</number>
+       </property>
+       <property name="bottomMargin">
+        <number>4</number>
+       </property>
+
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_operational_top">
+         <item>
+          <spacer name="horizontalSpacer_operational_top">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btn_refresh_operational">
+           <property name="minimumSize">
+            <size>
+             <width>90</width>
+             <height>32</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Refresh</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btn_export_operational">
+           <property name="minimumSize">
+            <size>
+             <width>110</width>
+             <height>32</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Export PDF</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+
+       <item>
+        <widget class="QLabel" name="label_equipment_condition">
+         <property name="text">
+          <string>Equipment by Condition</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QSplitter" name="splitter_operational_equipment">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <widget class="QTableWidget" name="equipment_condition_table"/>
+         <widget class="QTableWidget" name="equipment_maintenance_due_table"/>
+        </widget>
+       </item>
+
+       <item>
+        <widget class="QLabel" name="label_class_occupancy">
+         <property name="text">
+          <string>Today's Class Occupancy</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTableWidget" name="class_occupancy_table">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>1</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+
+       <item>
+        <widget class="QLabel" name="label_instructor_workload">
+         <property name="text">
+          <string>Instructor Workload</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTableWidget" name="instructor_workload_table">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>1</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <tabstops>
+  <tabstop>date_financial_from</tabstop>
+  <tabstop>date_financial_to</tabstop>
+  <tabstop>combo_financial_method</tabstop>
+  <tabstop>combo_financial_status</tabstop>
+  <tabstop>btn_filter_financial</tabstop>
+  <tabstop>btn_export_financial</tabstop>
+  <tabstop>btn_refresh_memberships</tabstop>
+  <tabstop>btn_export_memberships</tabstop>
+  <tabstop>date_attendance_from</tabstop>
+  <tabstop>date_attendance_to</tabstop>
+  <tabstop>btn_filter_attendance</tabstop>
+  <tabstop>btn_export_attendance</tabstop>
+  <tabstop>btn_refresh_operational</tabstop>
+  <tabstop>btn_export_operational</tabstop>
+ </tabstops>
+ <resources/>
+ <connections/>
+</ui>

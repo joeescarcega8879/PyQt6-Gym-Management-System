@@ -197,6 +197,13 @@ class ErrorMessages:
     MAINTENANCE_LOG_FAILED           = "Failed to log maintenance. Please try again."
     MAINTENANCE_UNEXPECTED_ERROR     = "An unexpected error occurred. Please try again."
 
+    # Reports module
+    REPORTS_NO_PERMISSION_READ = "You do not have permission to view reports"
+    REPORTS_NO_DATA_TO_EXPORT  = "There is no data to export yet. Load the report first."
+    REPORTS_EXPORT_SUCCESS    = "Report exported successfully"
+    REPORTS_EXPORT_FAILED     = "Failed to export the report. Please try again."
+    REPORTS_UNEXPECTED_ERROR  = "An unexpected error occurred. Please try again."
+
     @staticmethod
     def log_and_mask_error(error: Exception, context: str, user_message: Optional[str] = None) -> str:
         """

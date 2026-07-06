@@ -57,7 +57,7 @@ scripts/
 | Dashboard   | Completo | 17    | KPIs + tablas de detalle, agrega datos de otros servicios, refresh manual |
 | Instructors | Completo | 51    | CRUD funcional, permisos, specialties como TEXT[], sin vínculo a users |
 | Equipment   | Completo | 57    | 2 tabs (Equipment + Maintenance), CRUD equipo + historial insert-only |
-| Reports     | Pendiente | —    | btn_reports en sidebar, sin implementar                               |
+| Reports     | Completo | 27    | 4 tabs de solo lectura (Financial/Memberships/Attendance/Operational), agrega datos de otros servicios, export a PDF con reportlab |
 
 ---
 
@@ -418,9 +418,9 @@ Usuario presiona Discard
 - `user_id` y `photo_url` existen en el dataclass pero no se exponen en el formulario (igual que `photo_url` en Members) — quedan disponibles para una futura vinculación con `users`.
 - Búsqueda: solo por First Name / Last Name / Email (no hay campo tipo "código" como en Members).
 
-### Nota — bug latente encontrado en Members (no corregido, fuera de alcance)
+### Bug corregido — `MemberView.show_error` faltante
 
-`member_presenter.py` llama a `self.view.show_error(...)` en varias rutas de error, pero `MemberView` **no define** ese método — probablemente lanza `AttributeError` en producción cuando falla una carga/búsqueda. `InstructorView` sí define `show_error()` correctamente (usa `QMessageBox.critical`), evitando heredar el mismo bug.
+`member_presenter.py` llamaba a `self.view.show_error(...)` en varias rutas de error, pero `MemberView` no definía ese método — lanzaba `AttributeError` en producción cuando fallaba una carga/búsqueda. Corregido agregando `show_error()` a `MemberView` (mismo patrón que `InstructorView`: `QMessageBox.critical(self, "Error", message)`).
 
 ### Columnas de `table_instructors`
 
@@ -489,17 +489,53 @@ Usuario presiona Discard
 
 ---
 
+## Módulo Reports — Archivos Implementados ✅
+
+| Archivo | Notas |
+|---|---|
+| `src/models/models.py` — `FinancialReport`, `MembershipReport`, `AttendanceReport`, `OperationalReport` | Dataclasses de agregación, una por tab |
+| `src/services/reports_service.py` | Agregación pura (no toca `db_manager`), reutiliza payment/membership/attendance/class/equipment/instructor service — mismo patrón que `DashboardService` |
+| `src/services/attendance_service.py` | Nuevo método `get_attendance_by_range(date_from, date_to)` — antes solo existía `get_attendance_by_date` (un solo día) |
+| `src/utils/pdf_exporter.py` | `export_table_report()` — utilidad pura con `reportlab.platypus` (primer uso real de `reportlab` en el proyecto, ya estaba en `requirements.txt` sin usarse) |
+| `src/config/settings.py` | Nuevo `EXPORTS_DIR` (destino por defecto de los PDF exportados) |
+| `src/domain/permissions_definitions.py` / `permissions.py` | `REPORTS_READ` → solo ADMIN + ACCOUNTANT (único permiso, cubre los 4 tabs) |
+| `src/views/ui/reports_view.ui` | QTabWidget 4 tabs, 1200×750 — módulo de solo lectura, sin formularios de creación |
+| `src/views/reports_view.py` | 8 señales, getters de filtros, `populate_*_table()` por tabla, `prompt_save_pdf_path()` (QFileDialog), `show_export_success()` |
+| `src/presenters/reports_presenter.py` | Carga las 4 tabs al abrir, guarda el último reporte de cada tipo para exportar sin repetir la consulta |
+| `tests/test_reports_service.py` | 24 tests, 100% passing |
+| `tests/test_pdf_exporter.py` | 3 tests — genera un PDF real en `tmp_path` y verifica la firma `%PDF-` (sin mockear reportlab) |
+
+### Los 4 tabs
+
+| Tab | Contenido | Fuente |
+|---|---|---|
+| Financial | Total revenue, transacciones, % vs periodo anterior, tabla de pagos | `payment_service.get_payments()` — revenue siempre sobre pagos COMPLETED, independiente del filtro de status elegido |
+| Memberships | Conteo por status, conteo por plan, tasa de retención, expiring soon (7 días) | `membership_service.get_memberships()` / `get_all_plans()` |
+| Attendance | Total check-ins, check-ins por hora, top 10 miembros más frecuentes | `attendance_service.get_attendance_by_range()` (nuevo) |
+| Operational | Equipo por condición, equipo próximo a mantenimiento (7 días), ocupación de clases hoy, carga de instructores | `equipment_service` + `class_service` + `instructor_service` |
+
+### Notas de implementación
+
+- **Retention rate (aproximación)**: `active / (active + expired)`. No es una tasa de renovación real — el esquema no tiene un flag que distinga una renovación de un alta nueva. Documentado en el docstring de `MembershipReport.retention_rate_pct`.
+- **Instructor workload**: cuenta *todos* los schedules activos (no solo los de hoy), agrupados por `instructor_id` y resueltos a nombre vía `instructor_service.get_all_instructors()`.
+- **Equipment due maintenance**: por cada equipo se toma solo el registro de mantenimiento más reciente (`maintenance_date` mayor); si su `next_maintenance_date` cae dentro de los próximos 7 días, se considera "due".
+- **Class occupancy**: solo para los schedules de hoy (`day_of_week` calculado igual que en Dashboard); `pct` es `None` cuando `max_capacity` es `None` (ilimitado).
+- Cada handler de exportación reutiliza el último reporte cargado en el presenter (`_last_*_report`) — no vuelve a golpear los servicios al exportar.
+- Verificado con Qt en modo `offscreen`: carga de las 4 tabs, filtros/refresh, exportación real a PDF (firma `%PDF-` verificada) para los 4 tabs, y gating de permisos correcto (ADMIN/ACCOUNTANT pasan, RECEPTIONIST/INSTRUCTOR bloqueados).
+
+---
+
 ## Tests — Estado Actual
 
-**Total: 547 tests, 100% passing.**
+**Total: 580 tests, 100% passing.**
 
 | Archivo de test                  | Módulo cubierto                     | Tests |
 |----------------------------------|-------------------------------------|-------|
 | `test_service_result.py`         | `services/result.py`                | 16    |
 | `test_member_service.py`         | `services/member_service.py`        | 62    |
-| `test_permissions.py`            | `domain/permissions*.py`            | 21    |
+| `test_permissions.py`            | `domain/permissions*.py`            | 22    |
 | `test_auth_service.py`           | `services/auth_service.py`          | 31    |
-| `test_attendance_service.py`     | `services/attendance_service.py`    | 46    |
+| `test_attendance_service.py`     | `services/attendance_service.py`    | 52    |
 | `test_payment_service.py`        | `services/payment_service.py`       | 43    |
 | `test_membership_service.py`     | `services/membership_service.py`    | 94    |
 | `test_class_service.py`          | `services/class_service.py`         | 75    |
@@ -507,6 +543,8 @@ Usuario presiona Discard
 | `test_dashboard_service.py`      | `services/dashboard_service.py`     | 17    |
 | `test_instructor_service.py`     | `services/instructor_service.py`    | 51    |
 | `test_equipment_service.py`      | `services/equipment_service.py`     | 57    |
+| `test_reports_service.py`        | `services/reports_service.py`       | 24    |
+| `test_pdf_exporter.py`           | `utils/pdf_exporter.py`             | 3     |
 | `conftest.py`                    | Fixtures compartidas                | —     |
 
 **Estrategia de mocking:**
@@ -545,6 +583,7 @@ Usuario presiona Discard
 | Equipment | CREATE, UPDATE | ADMIN |
 | Maintenance | READ | ADMIN, RECEPTIONIST, INSTRUCTOR |
 | Maintenance | CREATE | ADMIN |
+| Reports | READ | ADMIN, ACCOUNTANT |
 
 ---
 
@@ -561,14 +600,26 @@ Usuario presiona Discard
 | `btn_settings` | Settings | Conectado ✅ |
 | `btn_instructors` | Instructors | Conectado ✅ |
 | `btn_equipment` | Equipment | Conectado ✅ |
-| `btn_reports` | Reports | Sin implementar |
+| `btn_reports` | Reports | Conectado ✅ |
 | `btn_logout` | Logout | Conectado ✅ |
 
 ---
 
 ## Historial de Cambios Recientes
 
-### Módulo Equipment — Implementado ✅ (sesión actual)
+### Módulo Reports — Implementado ✅ (sesión actual)
+- Único módulo pendiente del proyecto — ahora los 11 módulos están completos
+- `ReportsService`: agregación pura (mismo patrón que `DashboardService`), 4 métodos públicos (`get_financial_report`, `get_membership_report`, `get_attendance_report`, `get_operational_report`), reutiliza payment/membership/attendance/class/equipment/instructor service
+- Nuevo método `AttendanceService.get_attendance_by_range()` — el servicio solo tenía consulta de un día
+- Primer uso real de `reportlab` en el proyecto (`src/utils/pdf_exporter.py`) — estaba en `requirements.txt` sin usarse; se instaló en el entorno conda `MainEnvironment`
+- Módulo de solo lectura: 4 tabs sin formularios de creación, cada uno con su botón "Export PDF"
+- Permiso único `REPORTS_READ` → ADMIN + ACCOUNTANT (datos financieros, se excluye RECEPTIONIST/INSTRUCTOR a diferencia del resto de módulos)
+- De paso, corregido un bug latente en `MemberView` (`show_error` faltante, ver nota en la sección de Members) detectado en una sesión anterior
+- `btn_reports` conectado en sidebar; wiring completo `MainView` → `MainPresenter` → `MainApplication.open_reports_form()`
+- 27 tests nuevos (24 `ReportsService` + 3 `PdfExporter`) + 6 tests nuevos de `AttendanceService.get_attendance_by_range`, 100% passing (580 tests totales en el proyecto)
+- Verificado con Qt en modo `offscreen`: carga de las 4 tabs, filtros/refresh, exportación real a PDF (firma `%PDF-` verificada) por cada tab, gating de permisos correcto para los 4 roles
+
+### Módulo Equipment — Implementado ✅
 - Sigue el patrón de Memberships (2 entidades relacionadas → 1 servicio, 1 presenter, 1 vista con `QTabWidget`) en vez del patrón CRUD plano de Members/Instructors
 - `EquipmentService`: CRUD de `Equipment` (5 métodos) + `get_maintenance_records`/`get_maintenance_by_equipment`/`log_maintenance` para `EquipmentMaintenance` (insert-only, sin update/delete)
 - Tab "Equipment": un solo botón Save decide crear/actualizar según `_selected_equipment_id` (como Plans); Tab "Maintenance": filtro + tabla + formulario de registro
@@ -625,6 +676,4 @@ Usuario presiona Discard
 
 ## Próximos Pasos
 
-| Módulo | Botón en sidebar | Prioridad | Notas |
-|---|---|---|---|
-| Reports | `btn_reports` | Baja | Requiere definir qué reportes generar |
+Los 11 módulos planeados están completos. Sin pendientes identificados actualmente.

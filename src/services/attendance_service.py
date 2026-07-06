@@ -46,6 +46,33 @@ class AttendanceService:
         except Exception as e:
             return ServiceResult.fail(str(e))
 
+    def get_attendance_by_range(self, date_from: date, date_to: date) -> ServiceResult[list[Attendance]]:
+        """Returns all attendance records between two local dates (inclusive), with member info.
+
+        Same local-to-UTC boundary conversion as get_attendance_by_date, but spanning
+        from the start of date_from to the end of date_to.
+        """
+
+        try:
+            local_tz = datetime.now().astimezone().tzinfo
+
+            start = datetime.combine(date_from, datetime.min.time()).replace(tzinfo=local_tz).astimezone(timezone.utc).isoformat()
+            end   = datetime.combine(date_to, datetime.max.time()).replace(tzinfo=local_tz).astimezone(timezone.utc).isoformat()
+
+            rows = db_manager.select_range(
+                table=_TABLE,
+                column="check_in_time",
+                start=start,
+                end=end,
+                columns=_ATTENDANCE_COLUMNS,
+                joins=_ATTENDANCE_JOIN,
+                order_by="check_in_time",
+            )
+
+            return ServiceResult.ok([self._row_to_attendance(row) for row in rows])
+        except Exception as e:
+            return ServiceResult.fail(str(e))
+
     def search_member_for_checkin(self, term: str) -> ServiceResult[list[Member]]:
         """Searches active members by member_code or full name (ILIKE)."""
 

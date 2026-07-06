@@ -60,3 +60,6 @@ class Permissions:
     # Permissions related to equipment maintenance
     MAINTENANCE_CREATE = "maintenance.create"
     MAINTENANCE_READ   = "maintenance.read"
+
+    # Permissions related to reports
+    REPORTS_READ = "reports.read"
